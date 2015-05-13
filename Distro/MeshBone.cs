@@ -1332,7 +1332,7 @@ namespace MeshBoneUtil
 			int base_time = getIndexByTime((int)Math.Floor((double)time_in));
 			int end_time = getIndexByTime((int)Math.Ceiling((double)time_in));
 			
-			float ratio = (time_in - (float)base_time);
+			float ratio = (time_in - (float)Math.Floor((double)time_in));
 			
 			if(bone_cache_data_ready.Count == 0) {
 				return;
@@ -1453,7 +1453,7 @@ namespace MeshBoneUtil
 			int base_time = getIndexByTime((int)Math.Floor((double)time_in));
 			int end_time = getIndexByTime((int)Math.Ceiling((double)time_in));
 			
-			float ratio = (time_in - (float)base_time);
+			float ratio = (time_in - (float)Math.Floor((double)time_in));
 			
 			if(displacement_cache_data_ready.Count == 0) {
 				return;

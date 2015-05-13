@@ -310,6 +310,10 @@ namespace CreatureModule
 					if(cur_val > end_time) {
 						end_time = cur_val;
 					}
+
+					if(cur_val < start_time) {
+						start_time = cur_val;
+					}
 				}
 			}
 			
