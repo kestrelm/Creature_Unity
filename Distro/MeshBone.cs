@@ -678,6 +678,8 @@ namespace MeshBoneUtil
 		public List<XnaGeometry.Vector2> uv_warp_ref_uvs;
 		public Dictionary<string, List<float> > normal_weight_map;
 		public List<List<float> > fast_normal_weight_map;
+		public List<MeshBone> fast_bones_map;
+		public List<List<int> > relevant_bones_indices;
 		public string main_bone_key;
 		public MeshBone main_bone;
 		public bool use_dq;
@@ -712,6 +714,8 @@ namespace MeshBoneUtil
 			uv_warp_ref_uvs = new List<XnaGeometry.Vector2>();
 			normal_weight_map = new Dictionary<string, List<float> >();
 			fast_normal_weight_map = new List<List<float> >();
+			fast_bones_map = new List<MeshBone> ();
+			relevant_bones_indices = new List<List<int> > ();
 			use_dq = true;
 			tag_id = -1;
 			
@@ -785,46 +789,23 @@ namespace MeshBoneUtil
 					cur_rest_pt.Y += local_displacements[i].Y;
 				}
 				
-				XnaGeometry.Matrix accum_mat = new XnaGeometry.Matrix(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 				dualQuat accum_dq = new dualQuat();
 				
-				int n_index = 0;
-				foreach(var cur_iter in bones_map)
+				var bone_indices = relevant_bones_indices[i];
+				foreach(var j in bone_indices)
 				{
-					string cur_key = cur_iter.Key;
-					MeshBone cur_bone = cur_iter.Value;
-					float cur_weight_val = 0;
-					if(fast_normal_weight_map.Count > 0) {
-						cur_weight_val = fast_normal_weight_map[n_index][i];
-					}
-					else {
-						cur_weight_val = normal_weight_map[cur_key][i];
-					}
-					
+					MeshBone cur_bone = fast_bones_map[j];
+					float cur_weight_val = fast_normal_weight_map[j][i];
 					float cur_im_weight_val = cur_weight_val;
-					
-					if(use_dq == false) {
-						XnaGeometry.Matrix world_delta_mat = cur_bone.getWorldDeltaMat();
-						accum_mat += world_delta_mat * cur_weight_val;
-					}
-					else {
-						dualQuat world_dq = cur_bone.getWorldDq();
-						accum_dq.add(ref world_dq, cur_weight_val, cur_im_weight_val);
-					}
-					
-					++n_index;
+		
+					dualQuat world_dq = cur_bone.getWorldDq();
+					accum_dq.add(ref world_dq, cur_weight_val, cur_im_weight_val);
 				}
 				
 				XnaGeometry.Vector3 final_pt = new XnaGeometry.Vector3(0,0,0);
-				if(use_dq == false) {
-					XnaGeometry.Vector3 tmp_pt = new XnaGeometry.Vector3(cur_rest_pt.X, cur_rest_pt.Y, cur_rest_pt.Z);
-					final_pt = XnaGeometry.Vector3.Transform(tmp_pt, accum_mat);
-				}
-				else {
-					accum_dq.normalize();
-					XnaGeometry.Vector3 tmp_pt = new XnaGeometry.Vector3(cur_rest_pt.X, cur_rest_pt.Y, cur_rest_pt.Z);
-					final_pt = accum_dq.transform(ref tmp_pt);
-				}
+				accum_dq.normalize();
+				XnaGeometry.Vector3 tmp_pt = new XnaGeometry.Vector3(cur_rest_pt.X, cur_rest_pt.Y, cur_rest_pt.Z);
+				final_pt = accum_dq.transform(ref tmp_pt);
 
 				// debug start
 
@@ -1021,10 +1002,32 @@ namespace MeshBoneUtil
 		
 		public void initFastNormalWeightMap(ref Dictionary<string, MeshBone> bones_map)
 		{
+			fast_normal_weight_map.Clear ();
+			fast_bones_map.Clear ();
+			relevant_bones_indices.Clear ();
+
 			foreach (var cur_iter in bones_map) {
 				string cur_key = cur_iter.Key;
 				List<float> values = normal_weight_map[cur_key];
 				fast_normal_weight_map.Add(values);
+
+				fast_bones_map.Add (bones_map[cur_key]);
+			}
+
+			for(int i = 0; i < getNumPts(); i++)
+			{
+				List<int> relevant_array = new List<int>();
+				float cutoff_val = 0.05f;
+				for(int j = 0; j < fast_normal_weight_map.Count; j++)
+				{
+					float sample_val = fast_normal_weight_map[j][i];
+					if(sample_val > cutoff_val)
+					{
+						relevant_array.Add(j);
+					}
+				}
+
+				relevant_bones_indices.Add(relevant_array);
 			}
 		}
 
