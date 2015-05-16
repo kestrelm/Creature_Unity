@@ -75,5 +75,33 @@ public class CreatureAssetInspector : Editor {
 			}
 		}
 
+		if (GUILayout.Button ("Build State Machine")) 
+		{
+			CreateStateMachine();
+		}
+	}
+
+	public void CreateStateMachine()
+	{
+		CreatureAsset creature_asset = (CreatureAsset)target;
+		string create_name = "Assets/" + creature_asset.name +  "_StateMachineTransitions.controller";
+		// Creates the controller
+		var controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath (create_name);
+		var rootStateMachine = controller.layers[0].stateMachine;
+
+		// Add states
+		CreatureManager creature_manager = creature_asset.GetCreatureManager ();
+		Dictionary<string, CreatureModule.CreatureAnimation> all_animations
+			= creature_manager.animations;
+		
+		animation_names.Clear();
+		foreach (string cur_name in all_animations.Keys) {
+			var new_state = rootStateMachine.AddState(cur_name);
+
+			new_state.AddStateMachineBehaviour<CreatureStateMachineBehavior>();
+			CreatureStateMachineBehavior cur_behavior = (CreatureStateMachineBehavior)new_state.behaviours[0];
+			cur_behavior.play_animation_name = cur_name;
+		}
+
 	}
 }

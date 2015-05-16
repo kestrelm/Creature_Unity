@@ -53,6 +53,8 @@ public class CreatureGameController : MonoBehaviour
 
 	public CreatureGameAgent customAgent;
 
+	private Animator animator; 
+
 	// Put your own private gameplay variables here.
 	/*
 	private bool is_moving = false;
@@ -82,6 +84,19 @@ public class CreatureGameController : MonoBehaviour
 	public UnityEngine.Vector3 TransformToCreaturePt(UnityEngine.Vector3 pt_in)
 	{
 		return creature_renderer.transform.TransformPoint(pt_in);
+	}
+
+	void Awake ()
+	{
+		// Find a reference to the Animator component in Awake since it exists in the scene.
+		animator = GetComponent <Animator> ();
+		if (animator) {
+			CreatureStateMachineBehavior[] all_behaviors = animator.GetBehaviours<CreatureStateMachineBehavior>();
+			for(int i=0;i<all_behaviors.Length;i++)
+			{
+				all_behaviors[i].game_controller = this;
+			}
+		}
 	}
 
 	public MeshBone GetRootBone()
