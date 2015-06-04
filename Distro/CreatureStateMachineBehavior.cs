@@ -4,10 +4,17 @@ using System.Collections;
 public class CreatureStateMachineBehavior : StateMachineBehaviour {
 	public CreatureGameController game_controller;
 	public string play_animation_name;
+	public bool custom_frame_range;
+	public int custom_start_frame, custom_end_frame;
 
 	override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
 	{
 		var creature_renderer = game_controller.creature_renderer;
+		if (custom_frame_range) {
+			creature_renderer.creature_manager.GetAnimation(play_animation_name).start_time = custom_start_frame;
+			creature_renderer.creature_manager.GetAnimation(play_animation_name).end_time = custom_end_frame;
+		}
+
 		creature_renderer.BlendToAnimation(play_animation_name);
 	}
 
