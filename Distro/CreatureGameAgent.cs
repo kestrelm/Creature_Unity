@@ -10,7 +10,9 @@
 using System;
 using CreatureModule;
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 public class CreatureGameAgent : MonoBehaviour
 {

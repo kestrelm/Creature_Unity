@@ -40,7 +40,10 @@ using CreatureModule;
 using MeshBoneUtil;
 using XnaGeometry;
 using UnityEngine;
+
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 public class CreatureGameController : MonoBehaviour
 {
@@ -61,6 +64,7 @@ public class CreatureGameController : MonoBehaviour
 	private bool is_facing_left = false;
 	*/
 
+#if UNITY_EDITOR
 	// Controller creation
 	[MenuItem("Creature/CreatureGameController")]
 	static CreatureGameController CreateCreatureGameController()
@@ -75,6 +79,7 @@ public class CreatureGameController : MonoBehaviour
 
 		return new_controller;
 	}
+#endif
 
 	public UnityEngine.Vector3 TransformToCreatureDir(UnityEngine.Vector3 dir_in)
 	{

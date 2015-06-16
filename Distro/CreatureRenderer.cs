@@ -39,7 +39,10 @@ using System.Collections.Generic;
 using CreatureModule;
 using MeshBoneUtil;
 using UnityEngine;
+
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 [ExecuteInEditMode, RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class CreatureRenderer : MonoBehaviour 
@@ -74,6 +77,7 @@ public class CreatureRenderer : MonoBehaviour
 		return new_mesh;
 	}
 
+#if UNITY_EDITOR
 	[MenuItem("Creature/CreatureRenderer")]
 	static CreatureRenderer CreateRenderer()
 	{
@@ -84,6 +88,7 @@ public class CreatureRenderer : MonoBehaviour
 
 		return new_renderer;
 	}
+#endif
 
 	public CreatureRenderer()
 	{

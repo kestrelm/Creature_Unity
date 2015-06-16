@@ -1,7 +1,6 @@
 ﻿using System;
 using CreatureModule;
 using UnityEngine;
-using UnityEditor;
 
 public class RaptorGame : CreatureGameAgent
 {

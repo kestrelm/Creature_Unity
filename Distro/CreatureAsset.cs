@@ -39,8 +39,10 @@ using System.Collections.Generic;
 using CreatureModule;
 using MeshBoneUtil;
 using UnityEngine;
-using UnityEditor;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class CreatureAsset : MonoBehaviour
 {
@@ -48,6 +50,7 @@ public class CreatureAsset : MonoBehaviour
 	public CreatureManager creature_manager;
 	private bool is_dirty;
 
+#if UNITY_EDITOR
 	[MenuItem("Creature/CreatureAsset")]
 	static CreatureAsset CreateCreatureAsset()
 	{
@@ -58,6 +61,7 @@ public class CreatureAsset : MonoBehaviour
 		
 		return new_asset;
 	}
+#endif
 
 	public void ResetState () {
 		creatureJSON = null;
