@@ -452,6 +452,48 @@ namespace CreatureModule
 			cache_manager.makeAllReady();
 		}
 
+		public static void FillOpacityCache(Dictionary<string, object> json_obj,
+		                                   string key,
+		                                   int start_time,
+		                                   int end_time,
+		                                   ref MeshOpacityCacheManager cache_manager)
+		{
+			cache_manager.init(start_time, end_time);
+
+			if(json_obj.ContainsKey(key) == false)
+			{
+				return;
+			}
+
+			Dictionary<string, object> base_obj = (Dictionary<string, object>)json_obj[key];
+			
+			
+			foreach (KeyValuePair<string, object> cur_node in base_obj)
+			{
+				int cur_time = Convert.ToInt32(cur_node.Key);
+				
+				List<MeshOpacityCache> cache_list = new List<MeshOpacityCache>();
+				
+				Dictionary<string, object> node_dict = (Dictionary<string, object>)cur_node.Value;
+				foreach (KeyValuePair<string, object> opacity_node in node_dict)
+				{
+					string cur_name = opacity_node.Key;
+					Dictionary<string, object> opacity_dict = (Dictionary<string, object>)opacity_node.Value;
+					
+					MeshOpacityCache cache_data = new MeshOpacityCache(cur_name);
+					double cur_opacity =  (double)opacity_dict["opacity"];
+					cache_data.setOpacity((float)cur_opacity);
+					
+					cache_list.Add(cache_data);
+				}
+				
+				int set_index = cache_manager.getIndexByTime(cur_time);
+				cache_manager.opacity_cache_table[set_index] = cache_list;
+			}
+			
+			cache_manager.makeAllReady();
+		}
+
 	}
 
 
@@ -555,6 +597,7 @@ namespace CreatureModule
 		public MeshBoneCacheManager bones_cache;
 		public MeshDisplacementCacheManager displacement_cache;
 		public MeshUVWarpCacheManager uv_warp_cache;
+		public MeshOpacityCacheManager opacity_cache;
 		public List<List<float> > cache_pts;
 
 		public CreatureAnimation(ref Dictionary<string, object> load_data,
@@ -564,6 +607,7 @@ namespace CreatureModule
 			bones_cache = new MeshBoneCacheManager ();
 			displacement_cache = new MeshDisplacementCacheManager ();
 			uv_warp_cache = new MeshUVWarpCacheManager ();
+			opacity_cache = new MeshOpacityCacheManager ();
 			cache_pts = new List<List<float> > ();
 
 			LoadFromData(name_in, ref load_data);
@@ -599,6 +643,13 @@ namespace CreatureModule
 			                      (int)start_time,
 			                      (int)end_time,
 			                      ref uv_warp_cache);
+
+			// opacity animation
+			Utils.FillOpacityCache(json_clip,
+			                       "mesh_opacities",
+			                       (int)start_time,
+			                       (int)end_time,
+			                       ref opacity_cache);
 		}
 
 		int clipNum(int n, int lower, int upper) {
@@ -1008,7 +1059,40 @@ namespace CreatureModule
 			
 			return ret_name;
 		}
-		
+
+		public void UpdateRegionColours()
+		{
+			MeshBoneUtil.MeshRenderBoneComposition render_composition =
+				target_creature.render_composition;
+			List<MeshBoneUtil.MeshRenderRegion> cur_regions =
+				render_composition.getRegions();
+
+			for (int i = 0; i < cur_regions.Count; i++) {
+				MeshBoneUtil.MeshRenderRegion cur_region = cur_regions[i];
+				float read_val = cur_region.opacity;
+				if(read_val < 0.0f)
+				{
+					read_val = 0.0f;
+				}
+				else if(read_val > 100.0f)
+				{
+					read_val = 100.0f;
+				}
+
+				byte set_opacity =  (byte)(read_val / 100.0f * 255.0f);
+				int cur_rgba_index = cur_region.getStartPtIndex() * 4;
+				for(int j = 0; j < cur_region.getNumPts(); j++)
+				{
+					target_creature.render_colours[cur_rgba_index] = set_opacity;
+					target_creature.render_colours[cur_rgba_index + 1] = set_opacity;
+					target_creature.render_colours[cur_rgba_index + 2] = set_opacity;
+					target_creature.render_colours[cur_rgba_index + 3] = set_opacity;
+
+					cur_rgba_index += 4;
+				}
+
+			}
+		}
 		
 		public void PoseCreature(string animation_name_in,
 		                  		 List<float> target_pts)
@@ -1018,6 +1102,7 @@ namespace CreatureModule
 			MeshBoneUtil.MeshBoneCacheManager bone_cache_manager = cur_animation.bones_cache;
 			MeshBoneUtil.MeshDisplacementCacheManager displacement_cache_manager = cur_animation.displacement_cache;
 			MeshBoneUtil.MeshUVWarpCacheManager uv_warp_cache_manager = cur_animation.uv_warp_cache;
+			MeshBoneUtil.MeshOpacityCacheManager opacity_cache_manager = cur_animation.opacity_cache;
 			
 			MeshBoneUtil.MeshRenderBoneComposition render_composition =
 				target_creature.render_composition;
@@ -1040,8 +1125,12 @@ namespace CreatureModule
 			                                                regions_map);
 			uv_warp_cache_manager.retrieveValuesAtTime(getRunTime(),
 			                                           regions_map);
-			
-			
+
+			opacity_cache_manager.retrieveValuesAtTime(getRunTime (),
+			                                           regions_map);
+
+			UpdateRegionColours ();
+
 			// Do posing, decide if we are blending or not
 			List<MeshBoneUtil.MeshRenderRegion> cur_regions =
 				render_composition.getRegions();
@@ -1063,7 +1152,7 @@ namespace CreatureModule
 				    k <= cur_region.getEndPtIndex() * 3; 
 				    k+=3)
 				{
-					target_pts[k + 2] = j * 0.001f;
+					target_pts[k + 2] = j * 0.01f;
 				}
 			}
 		}

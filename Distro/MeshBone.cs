@@ -676,6 +676,7 @@ namespace MeshBoneUtil
 		public bool use_uv_warp;
 		public XnaGeometry.Vector2 uv_warp_local_offset, uv_warp_global_offset, uv_warp_scale;
 		public List<XnaGeometry.Vector2> uv_warp_ref_uvs;
+		public float opacity;
 		public Dictionary<string, List<float> > normal_weight_map;
 		public List<List<float> > fast_normal_weight_map;
 		public List<MeshBone> fast_bones_map;
@@ -704,6 +705,7 @@ namespace MeshBoneUtil
 			uv_warp_local_offset = new XnaGeometry.Vector2(0,0);
 			uv_warp_global_offset = new XnaGeometry.Vector2(0,0);
 			uv_warp_scale = new XnaGeometry.Vector2(1,1);
+			opacity = 100.0f;
 			start_pt_index = start_pt_index_in;
 			end_pt_index = end_pt_index_in;
 			start_index = start_index_in;
@@ -1274,6 +1276,34 @@ namespace MeshBoneUtil
 		}
 	}
 
+	// MeshOpacityCache
+	public class MeshOpacityCache {
+		public string key;
+		public float opacity;
+
+		public MeshOpacityCache(string key_in)
+		{
+			key = key_in;
+			opacity = 100.0f;
+		}
+		
+		public void setOpacity(float value_in)
+		{
+			opacity = value_in;
+		}
+		
+		public float getOpacity()
+		{
+			return opacity;
+		}
+		
+		public string getKey() {
+			return key;
+		}
+		
+
+	}
+
 	// MeshBoneCacheManager
 	public class MeshBoneCacheManager {
 		public List<List<MeshBoneCache> > bone_cache_table;
@@ -1673,5 +1703,116 @@ namespace MeshBoneUtil
 		
 	}
 
+	// MeshOpacityCacheManager
+	public class MeshOpacityCacheManager {
+		public List<List<MeshOpacityCache> > opacity_cache_table;
+		public List<bool> opacity_cache_data_ready;
+		public int start_time, end_time;
+		public bool is_ready;
+		
+		public MeshOpacityCacheManager()
+		{
+			is_ready = false;
+			opacity_cache_table = null;
+			opacity_cache_data_ready = null;
+			opacity_cache_table = new List<List<MeshOpacityCache> > ();
+			opacity_cache_data_ready = new List<bool> ();
+		}
+		
+		public void init(int start_time_in, int end_time_in)
+		{
+			start_time = start_time_in;
+			end_time = end_time_in;
+			
+			int num_frames = end_time - start_time + 1;
+			opacity_cache_table.Clear();
+			
+			opacity_cache_data_ready.Clear();
+			for(int i = 0; i < num_frames; i++) {
+				opacity_cache_table.Add(new List<MeshOpacityCache>());
+				opacity_cache_data_ready.Add(false);
+			}
+			
+			is_ready = false;
+		}
+		
+		public int getStartTime()
+		{
+			return start_time;
+		}
+		
+		public int getEndime()
+		{
+			return end_time;
+		}
+		
+		public int getIndexByTime(int time_in)
+		{
+			int retval = time_in - start_time;
+			retval = (int)XnaGeometry.MathHelper.Clamp((double)retval,
+			                                           (double)0,
+			                                           (double)(opacity_cache_table.Count) - 1);
+			
+			
+			return retval;
+		}
+		
+		public void retrieveValuesAtTime(float time_in,
+		                                 Dictionary<string, MeshRenderRegion> regions_map)
+		{
+			int base_time = getIndexByTime((int)Math.Floor(time_in));
+			int end_time = getIndexByTime((int)Math.Ceiling(time_in));
+			
+			if(opacity_cache_data_ready.Count == 0) {
+				return;
+			}
+			
+			if((opacity_cache_data_ready[base_time] == false)
+			   || (opacity_cache_data_ready[end_time] == false))
+			{
+				return;
+			}
+			
+			List<MeshOpacityCache> base_cache = opacity_cache_table[base_time];
+			
+			for(int i = 0; i < base_cache.Count; i++) {
+				MeshOpacityCache base_data = base_cache[i];
+				string cur_key = base_data.getKey();
+				
+				MeshRenderRegion set_region = regions_map[cur_key];
+				set_region.opacity = base_data.getOpacity();
+			}
+		}
+		
+		public bool allReady()
+		{
+			if(is_ready) {
+				return true;
+			}
+			else {
+				int num_frames = end_time - start_time + 1;
+				int ready_cnt = 0;
+				for(int i = 0; i < opacity_cache_data_ready.Count; i++) {
+					if(opacity_cache_data_ready[i]) {
+						ready_cnt++;
+					}
+				}
+				
+				if(ready_cnt == num_frames) {
+					is_ready = true;
+				}
+			}
+			
+			return is_ready;
+		}
+		
+		public void makeAllReady()
+		{
+			for(int i = 0; i < opacity_cache_data_ready.Count; i++) {
+				opacity_cache_data_ready[i] = true;
+			}
+		}
+		
+	}
 }
 
