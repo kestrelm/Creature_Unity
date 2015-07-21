@@ -703,6 +703,7 @@ namespace CreatureModule
 		public List<List<float> > blend_render_pts;
 		public bool do_blending;
 		public float blending_factor;
+		public Dictionary<string, float> region_override_alphas;
 		public List<string> active_blend_animation_names;
 		public Action<Dictionary<string, MeshBone> > bones_override_callback;
 
@@ -715,6 +716,7 @@ namespace CreatureModule
 			blending_factor = 0;
 			animations = new Dictionary<string, CreatureAnimation> ();
 			bones_override_callback = null;
+			region_override_alphas = new Dictionary<string, float> ();
 
 			blend_render_pts = new List<List<float> >();
 			blend_render_pts.Add(new List<float> ());
@@ -1070,6 +1072,13 @@ namespace CreatureModule
 			for (int i = 0; i < cur_regions.Count; i++) {
 				MeshBoneUtil.MeshRenderRegion cur_region = cur_regions[i];
 				float read_val = cur_region.opacity;
+
+				// see if there is an override alpha as well
+				if(region_override_alphas.ContainsKey(cur_region.name))
+				{
+					read_val = region_override_alphas[cur_region.name];
+				}
+
 				if(read_val < 0.0f)
 				{
 					read_val = 0.0f;
@@ -1092,6 +1101,12 @@ namespace CreatureModule
 				}
 
 			}
+		}
+
+		// Sets an override opacity/alpha value for a region
+		public void SetOverrideRegionAlpha(string region_name_in, float value_in)
+		{
+			region_override_alphas [region_name_in] = value_in;
 		}
 		
 		public void PoseCreature(string animation_name_in,

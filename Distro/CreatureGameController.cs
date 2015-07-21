@@ -48,6 +48,7 @@ using UnityEditor;
 public class CreatureGameController : MonoBehaviour
 {
 	public CreatureRenderer creature_renderer;
+	public List<CreatureSwitchItemRenderer> switch_renderer_list;
 	public float colliderHeight;
 	public float simColliderWidth, simColliderHeight;
 	public bool noCollisions = false;
@@ -76,6 +77,7 @@ public class CreatureGameController : MonoBehaviour
 		new_controller.colliderHeight = 1.0f;
 		new_controller.simColliderWidth = 10.0f;
 		new_controller.simColliderHeight = 10.0f;
+		new_controller.switch_renderer_list = new List<CreatureSwitchItemRenderer>();
 
 		return new_controller;
 	}
@@ -241,6 +243,12 @@ public class CreatureGameController : MonoBehaviour
 		// Put your custom gameplay code here
 		//creature_renderer.SetActiveAnimation ("standing");
 
+		// The following code demonstrates how to do item switching
+		// First we prepare the list of items from the switch atlas and add it into the switcher object
+		// If you have multiple items, you will add them all in i.e AddSwitchItem("Item1"...); ... AddSwitchItem("ItemX"...);
+		// var cur_switcher = switch_renderer_list [0];
+		// cur_switcher.AddSwitchItem ("torsoSwitch1", new UnityEngine.Vector2 (136, 4), 481, 569, 2048, 2048);
+
 		// Call a custom agent if available
 		if (customAgent) 
 		{
@@ -299,6 +307,16 @@ public class CreatureGameController : MonoBehaviour
 		{
 			customAgent.updateStep();
 		}
+
+		// The following code demonstrates how to do item switching
+		/*
+		CreatureManager cur_manager = creature_renderer.creature_manager;
+		// First hide the region we want to override
+		cur_manager.SetOverrideRegionAlpha ("torso", 0.0f);
+		// Now switch
+		var cur_switcher = switch_renderer_list [0];
+		cur_switcher.SetTargetSwitchItem ("torsoSwitch1");
+		*/
 
 		// The following code sets an optional bone override callback for modifying bone positions
 		/*
