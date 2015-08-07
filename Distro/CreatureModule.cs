@@ -705,6 +705,11 @@ namespace CreatureModule
 		public float blending_factor;
 		public Dictionary<string, float> region_override_alphas;
 		public List<string> active_blend_animation_names;
+		public List<string> auto_blend_names;
+		public Dictionary<string, float> active_blend_run_times;
+		public bool do_auto_blending;
+		public float auto_blend_delta;
+		public bool should_loop;
 		public Action<Dictionary<string, MeshBone> > bones_override_callback;
 
 		public CreatureManager(CreatureModule.Creature target_creature_in)
@@ -722,9 +727,20 @@ namespace CreatureModule
 			blend_render_pts.Add(new List<float> ());
 			blend_render_pts.Add(new List<float> ());
 
-			active_blend_animation_names = new List<string>();
-			active_blend_animation_names.Add("");
-			active_blend_animation_names.Add("");
+			active_blend_animation_names = new List<string> ();
+			active_blend_animation_names.Add ("");
+			active_blend_animation_names.Add ("");
+
+			do_auto_blending = false;
+			auto_blend_delta = 0.0f;
+
+			auto_blend_names = new List<string>();
+			auto_blend_names.Add("");
+			auto_blend_names.Add("");
+
+			active_blend_run_times = new Dictionary<string, float>();
+
+			should_loop = true;
 		}
 
 		// Create a point cache for a specific animation
@@ -747,7 +763,7 @@ namespace CreatureModule
 			{
 				setRunTime((float)i);
 				List<float> new_pts = new List<float>(new float[target_creature.total_num_pts * 3]);
-				PoseCreature(animation_name_in, new_pts);
+				PoseCreature(animation_name_in, new_pts, getRunTime());
 				
 				cache_pts_list.Add(new_pts);
 			}
@@ -780,6 +796,7 @@ namespace CreatureModule
 		public void AddAnimation(CreatureModule.CreatureAnimation animation_in)
 		{
 			animations[animation_in.name] = animation_in;
+			active_blend_run_times[animation_in.name] = animation_in.start_time;
 		}
 		
 		// Return an animation
@@ -874,13 +891,6 @@ namespace CreatureModule
 			is_playing = flag_in;
 		}
 		
-		// Resets animation to start time
-		public void ResetToStartTimes()
-		{
-			CreatureAnimation cur_animation = animations[active_animation_name];
-			run_time = cur_animation.start_time;
-		}
-		
 		// Sets the run time of the animation
 		public void setRunTime(float time_in)
 		{
@@ -923,6 +933,12 @@ namespace CreatureModule
 			}
 			
 			increRunTime(delta * time_scale);
+
+			if (do_auto_blending) {
+				ProcessAutoBlending();
+				// process run times for blends
+				IncreAutoBlendRunTimes(delta * time_scale);
+			}
 		
 			RunCreature ();
 		}
@@ -943,13 +959,16 @@ namespace CreatureModule
 			if(do_blending)
 			{
 				for(int i = 0; i < 2; i++) {
-					CreatureAnimation cur_animation = animations[active_blend_animation_names[i]];
+					string cur_animation_name = active_blend_animation_names[i];
+					CreatureAnimation cur_animation = animations[cur_animation_name];
+					float cur_animation_run_time = active_blend_run_times[cur_animation_name];
+
 					if(cur_animation.hasCachePts())
 					{
-						cur_animation.poseFromCachePts(getRunTime(), blend_render_pts[i], target_creature.total_num_pts);
+						cur_animation.poseFromCachePts(cur_animation_run_time, blend_render_pts[i], target_creature.total_num_pts);
 					}
 					else {
-						PoseCreature(active_blend_animation_names[i], blend_render_pts[i]);
+						PoseCreature(active_blend_animation_names[i], blend_render_pts[i], cur_animation_run_time);
 					}
 				}
 				
@@ -972,7 +991,7 @@ namespace CreatureModule
 					
 				}
 				else {
-					PoseCreature(active_animation_name, target_creature.render_pts);
+					PoseCreature(active_animation_name, target_creature.render_pts, getRunTime());
 				}
 			}
 		}
@@ -998,6 +1017,129 @@ namespace CreatureModule
 				}
 
 			}
+		}
+
+		// Sets auto blending
+		public void SetAutoBlending(bool flag_in)
+		{
+			do_auto_blending = flag_in;
+			SetBlending(flag_in);
+			
+			if(do_auto_blending)
+			{
+				AutoBlendTo(active_animation_name, 0.1f);
+			}
+		}
+
+		// Use auto blending to blend to the next animation
+		public void AutoBlendTo(string animation_name_in, float blend_delta)
+		{
+			if(animation_name_in == auto_blend_names[1])
+			{
+				// already blending to that so just return
+				return;
+			}
+			
+			ResetBlendTime(animation_name_in);
+			
+			auto_blend_delta = blend_delta;
+			auto_blend_names[0] = active_animation_name;
+			auto_blend_names[1] = animation_name_in;
+			blending_factor = 0;
+			
+			active_animation_name = animation_name_in;
+			
+			SetBlendingAnimations(auto_blend_names[0], auto_blend_names[1]);
+		}
+
+		public void ResetBendTime(string name_in)
+		{
+			CreatureAnimation cur_animation = animations[name_in];
+			active_blend_run_times[name_in] = cur_animation.start_time;
+		}
+
+		// Resets animation to start time
+		public void ResetToStartTimes()
+		{
+			if(animations.ContainsKey(active_animation_name) == false)
+			{
+				return;
+			}
+			
+			// reset non blend time
+			CreatureAnimation cur_animation = animations[active_animation_name];
+			run_time = cur_animation.start_time;
+			
+			// reset blend times too
+			foreach (KeyValuePair<string, float> blend_time_data in active_blend_run_times)
+			{
+				ResetBlendTime(blend_time_data.Key);
+			}
+		}
+
+		private void ProcessAutoBlending()
+		{
+			// process blending factor
+			blending_factor += auto_blend_delta;
+			if(blending_factor > 1)
+			{
+				blending_factor = 1;
+			}
+		}
+
+		private void IncreAutoBlendRunTimes(float delta_in)
+		{
+			string set_animation_name = "";
+			foreach (string cur_animation_name in auto_blend_names)
+			{
+				if ((animations.ContainsKey(cur_animation_name)) 
+				    && (set_animation_name.Equals(cur_animation_name) == false))
+				{
+					float cur_run_time = active_blend_run_times[cur_animation_name];
+					cur_run_time += delta_in;
+					cur_run_time = correctRunTime(cur_run_time, cur_animation_name);
+
+					active_blend_run_times[cur_animation_name] = cur_run_time;
+					
+					set_animation_name = cur_animation_name;
+				}
+			}
+		}
+
+		private float correctRunTime(float time_in, string animation_name)
+		{
+			float ret_time = time_in;
+			CreatureAnimation cur_animation = animations[animation_name];
+			float anim_start_time = cur_animation.start_time;
+			float anim_end_time = cur_animation.end_time;
+			
+			if (ret_time > anim_end_time)
+			{
+				if (should_loop)
+				{
+					ret_time = anim_start_time;
+				}
+				else {
+					ret_time = anim_end_time;
+				}
+			}
+			else if (ret_time < anim_start_time)
+			{
+				if (should_loop)
+				{
+					ret_time = anim_end_time;
+				}
+				else {
+					ret_time = anim_start_time;
+				}
+			}
+			
+			return ret_time;
+		}
+
+		private void ResetBlendTime(string name_in)
+		{
+
 		}
 		
 		// Sets blending animation names
@@ -1110,7 +1252,8 @@ namespace CreatureModule
 		}
 		
 		public void PoseCreature(string animation_name_in,
-		                  		 List<float> target_pts)
+		                  		 List<float> target_pts,
+		                         float input_run_time)
 		{
 			CreatureAnimation cur_animation = animations[animation_name_in];
 			
@@ -1128,7 +1271,7 @@ namespace CreatureModule
 			Dictionary<string, MeshBoneUtil.MeshRenderRegion> regions_map =
 				render_composition.getRegionsMap();
 			
-			bone_cache_manager.retrieveValuesAtTime(getRunTime(),
+			bone_cache_manager.retrieveValuesAtTime(input_run_time,
 			                                        ref bones_map);
 
 			if(bones_override_callback != null) 
@@ -1136,12 +1279,12 @@ namespace CreatureModule
 				bones_override_callback(bones_map);
 			}
 
-			displacement_cache_manager.retrieveValuesAtTime(getRunTime(),
+			displacement_cache_manager.retrieveValuesAtTime(input_run_time,
 			                                                regions_map);
-			uv_warp_cache_manager.retrieveValuesAtTime(getRunTime(),
+			uv_warp_cache_manager.retrieveValuesAtTime(input_run_time,
 			                                           regions_map);
 
-			opacity_cache_manager.retrieveValuesAtTime(getRunTime (),
+			opacity_cache_manager.retrieveValuesAtTime(input_run_time,
 			                                           regions_map);
 
 			UpdateRegionColours ();

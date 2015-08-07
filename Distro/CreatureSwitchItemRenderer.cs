@@ -210,7 +210,7 @@ public class CreatureSwitchItemRenderer : MonoBehaviour {
 		var cur_region = regions_map [switch_region];
 		List<float> render_pts = creature_manager.target_creature.render_pts;
 		List<float> render_uvs = creature_manager.target_creature.global_uvs;
-		List<byte> render_colors = creature_manager.target_creature.render_colours;
+		//List<byte> render_colors = creature_manager.target_creature.render_colours;
 
 		int pt_index = cur_region.getStartPtIndex() * 3;
 		int uv_index = cur_region.getStartPtIndex() * 2;

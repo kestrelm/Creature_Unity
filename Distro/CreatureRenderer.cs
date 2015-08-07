@@ -61,12 +61,8 @@ public class CreatureRenderer : MonoBehaviour
 	public CreatureAsset creature_asset;
 	public CreatureManager creature_manager;
 	public int animation_choice_index;
-	private string prev_animation_name;
 	public string active_animation_name;
 	public float blend_rate = 0.1f;
-	private float blend_factor = 1.0f;
-	private bool should_start_blending = false;
-	private bool is_blending = false;
 	public bool should_loop;
 
 	private Mesh createMesh () {
@@ -92,7 +88,7 @@ public class CreatureRenderer : MonoBehaviour
 
 	public CreatureRenderer()
 	{
-		local_time_scale = 35.0f;
+		local_time_scale = 2.0f;
 	}
 	
 	public virtual void Reset()
@@ -114,6 +110,9 @@ public class CreatureRenderer : MonoBehaviour
 			CreatureManager ref_manager = creature_asset.GetCreatureManager();
 			creature_manager = new CreatureManager(ref_manager.target_creature);
 			creature_manager.animations = ref_manager.animations;
+			creature_manager.active_blend_run_times = new Dictionary<string, float>(ref_manager.active_blend_run_times);
+			creature_manager.active_blend_animation_names = new List<string>(ref_manager.active_blend_animation_names);
+			creature_manager.auto_blend_names = new List<string>(ref_manager.auto_blend_names);
 
 			SetActiveAnimation(active_animation_name);
 			creature_manager.SetIsPlaying(true);
@@ -173,8 +172,6 @@ public class CreatureRenderer : MonoBehaviour
 
 
 		local_time = creature_manager.animations [creature_manager.GetActiveAnimationName()].start_time;
-
-		prev_animation_name = animation_name;
 	}
 
 	public void BlendToAnimation(string animation_name)
@@ -183,10 +180,9 @@ public class CreatureRenderer : MonoBehaviour
 			return;
 		}
 
-		prev_animation_name = active_animation_name;
 		active_animation_name = animation_name;
-		blend_factor = 0;
-		should_start_blending = true;
+		creature_manager.SetAutoBlending (true);
+		creature_manager.AutoBlendTo (animation_name, blend_rate);
 	}
 
 	// Returns the local playback time
@@ -292,7 +288,9 @@ public class CreatureRenderer : MonoBehaviour
 			return;
 		}
 
-		local_time += (Time.deltaTime * local_time_scale);
+
+		float time_delta = (Time.deltaTime * local_time_scale);
+		local_time += time_delta;
 		float local_start_time = creature_manager.animations[active_animation_name].start_time;
 		float local_end_time = creature_manager.animations[active_animation_name].end_time;
 
@@ -315,37 +313,11 @@ public class CreatureRenderer : MonoBehaviour
 				local_time = local_end_time;
 			}
 		}
+
+		creature_manager.should_loop = should_loop;
+		creature_manager.Update (time_delta);
 	}
 
-	private void processBlending() {
-		if (should_start_blending == true) {
-			should_start_blending = false;
-
-			creature_manager.SetBlendingAnimations(prev_animation_name, active_animation_name);
-			creature_manager.SetBlending(true);
-			is_blending = true;
-		}
-
-		if (!is_blending) {
-			return;	
-		}
-
-		blend_factor += blend_rate;
-
-		if (blend_factor >= 1.0)
-		{
-			creature_manager.SetBlending(false);
-			float cur_time = local_time;
-			SetActiveAnimation(active_animation_name, false);
-			prev_animation_name = active_animation_name;
-			local_time = cur_time;
-			is_blending = false;
-		} 
-		else {
-			creature_manager.SetBlendingFactor(blend_factor);
-		}
-	}
-	
 	public virtual void LateUpdate () 
 	{
 		if (creature_manager != null) {
@@ -357,12 +329,8 @@ public class CreatureRenderer : MonoBehaviour
 				creature_asset.SetIsDirty(false);
 			}
 
-			processBlending();
-
-
-			creature_manager.RunAtTime (local_time);
-			UpdateRenderingData ();
 			UpdateTime();
+			UpdateRenderingData ();
 
 			meshFilter.sharedMesh = active_mesh;
 		}
