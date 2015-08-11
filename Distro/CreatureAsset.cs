@@ -44,11 +44,63 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+[Serializable]
+public class CreatureAnimationAssetData {
+	[SerializeField]
+	public int start_frame;
+	[SerializeField]
+	public int end_frame;
+
+	public CreatureAnimationAssetData(int start_frame_in, int end_frame_in) {
+		start_frame = start_frame_in;
+		end_frame = end_frame_in;
+	}
+}
+
+[Serializable]
+public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializationCallbackReceiver
+{
+	[SerializeField]
+	private List<TKey> keys = new List<TKey>();
+	
+	[SerializeField]
+	private List<TValue> values = new List<TValue>();
+	
+	// save the dictionary to lists
+	public void OnBeforeSerialize()
+	{
+		keys.Clear();
+		values.Clear();
+		foreach(KeyValuePair<TKey, TValue> pair in this)
+		{
+			keys.Add(pair.Key);
+			values.Add(pair.Value);
+		}
+	}
+	
+	// load dictionary from lists
+	public void OnAfterDeserialize()
+	{
+		this.Clear();
+		
+		if(keys.Count != values.Count)
+			throw new System.Exception(string.Format("there are {0} keys and {1} values after deserialization. Make sure that both key and value types are serializable."));
+		
+		for(int i = 0; i < keys.Count; i++)
+			this.Add(keys[i], values[i]);
+	}
+}
+
+[Serializable] public class DictionaryOfStringAndAnimation : SerializableDictionary<string, CreatureAnimationAssetData> {}
+
 public class CreatureAsset : MonoBehaviour
 {
 	public TextAsset creatureJSON;
 	public CreatureManager creature_manager;
 	private bool is_dirty;
+
+	[SerializeField]
+	public DictionaryOfStringAndAnimation animation_clip_overides = new DictionaryOfStringAndAnimation ();
 
 #if UNITY_EDITOR
 	[MenuItem("Creature/CreatureAsset")]
@@ -62,6 +114,11 @@ public class CreatureAsset : MonoBehaviour
 		return new_asset;
 	}
 #endif
+
+	public CreatureAsset()
+	{
+
+	}
 
 	public void ResetState () {
 		creatureJSON = null;
@@ -97,6 +154,20 @@ public class CreatureAsset : MonoBehaviour
 		CreatureModule.Creature new_creature = new CreatureModule.Creature(ref load_data);
 		creature_manager = new CreatureModule.CreatureManager (new_creature);
 		creature_manager.CreateAllAnimations (ref load_data);
+
+		// Set Animation Frame Ranges
+		var all_animations = creature_manager.animations;
+		foreach (KeyValuePair<string, CreatureAnimationAssetData> entry in animation_clip_overides) 
+		{
+			var cur_name = entry.Key;
+			var cur_animation_data = entry.Value;
+
+			if(all_animations.ContainsKey(cur_name)) 
+			{
+				all_animations[cur_name].start_time = cur_animation_data.start_frame;
+				all_animations[cur_name].end_time = cur_animation_data.end_frame;
+			}
+		}
 
 		is_dirty = true;
 
