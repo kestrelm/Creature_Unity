@@ -9,11 +9,13 @@ using CreatureModule;
 using System.Collections;
 using System.Collections.Generic;
 
-
 [CustomEditor(typeof(CreatureAsset))]
 public class CreatureAssetInspector : Editor {
 	private SerializedProperty creatureJSON;
 	private List<string> animation_names;
+
+	[SerializeField]
+	public DictionaryOfStringAndAnimation animation_clip_overrides;
 
 	CreatureAssetInspector()
 	{
@@ -47,6 +49,16 @@ public class CreatureAssetInspector : Editor {
 		foreach (string cur_name in all_animations.Keys) {
 			animation_names.Add(cur_name);
 		}
+
+		animation_clip_overrides = creature_asset.animation_clip_overides;
+		if (animation_clip_overrides.Count == 0) {
+			foreach (string cur_name in all_animations.Keys) {
+				var cur_animation = all_animations[cur_name];
+				animation_clip_overrides.Add(cur_name, 
+				                             new CreatureAnimationAssetData((int)cur_animation.start_time, 
+				                               								(int)cur_animation.end_time));
+			}
+		}
 	}
 
 	override public void OnInspectorGUI () 
@@ -71,6 +83,21 @@ public class CreatureAssetInspector : Editor {
 			foreach (string cur_name in animation_names) {
 				EditorGUILayout.LabelField ("Animation Clip #" + i.ToString () + ":", 
 				                            cur_name);
+
+				var cur_start_time = animation_clip_overrides[cur_name].start_frame;
+				var cur_end_time = animation_clip_overrides[cur_name].end_frame;
+
+				EditorGUILayout.BeginHorizontal("Frame Range:", GUILayout.MaxHeight(50));
+				EditorGUILayout.LabelField("Frame Range:", GUILayout.MaxWidth(100));
+				int new_start_frame = EditorGUILayout.IntField(cur_start_time, GUILayout.MaxWidth(50));
+
+				EditorGUILayout.LabelField("to", GUILayout.MaxWidth(20));
+				int new_end_frame = EditorGUILayout.IntField(cur_end_time, GUILayout.MaxWidth(50));
+				EditorGUILayout.EndHorizontal();
+
+				animation_clip_overrides[cur_name].start_frame = new_start_frame;
+				animation_clip_overrides[cur_name].end_frame = new_end_frame;
+
 				i++;
 			}
 		}
