@@ -30,8 +30,6 @@ public class MerfolkGame : CreatureGameAgent
 		var creature_renderer = game_controller.creature_renderer;
 		var parent_obj = creature_renderer.gameObject;
 		Rigidbody2D parent_rbd = parent_obj.GetComponent<Rigidbody2D> ();
-		parent_rbd.gravityScale = 0;
-
 
 		if (ai_cnt > UnityEngine.Random.Range (200, 500)) {
 			int roll_val = UnityEngine.Random.Range (0, 150);
@@ -162,7 +160,6 @@ public class MerfolkGame : CreatureGameAgent
 		//bool attack_up = Input.GetKeyUp (KeyCode.R);
 		var parent_obj = creature_renderer.gameObject;
 		Rigidbody2D parent_rbd = parent_obj.GetComponent<Rigidbody2D> ();
-		parent_rbd.gravityScale = 0;
 
 		if (use_ai) {
 			runAI ();

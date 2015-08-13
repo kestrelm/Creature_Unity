@@ -52,6 +52,8 @@ public class CreatureGameController : MonoBehaviour
 	public float colliderHeight;
 	public float simColliderWidth, simColliderHeight;
 	public bool noCollisions = false;
+	public bool noGravity = false;
+	public Rigidbody2D parentRBD;
 	List<Rigidbody2D> child_bodies;
 	List<MeshBone> runtime_bones;
 
@@ -154,7 +156,9 @@ public class CreatureGameController : MonoBehaviour
 		// Create a base rigid body that actually participates in simulation for the creature_renderer
 		var parent_obj = creature_renderer.gameObject;
 		Rigidbody2D parent_rbd = parent_obj.AddComponent<Rigidbody2D> ();
+		parentRBD = parent_rbd;
 		parent_rbd.isKinematic = false;
+
 		BoxCollider2D parent_collider = parent_obj.AddComponent<BoxCollider2D> ();
 		parent_collider.size = new UnityEngine.Vector2(simColliderWidth, simColliderHeight);
 
@@ -210,7 +214,7 @@ public class CreatureGameController : MonoBehaviour
 		if (noCollisions) {
 			parent_collider.enabled = false;
 		}
-		
+
 		foreach (Transform child in transform) {
 			var cur_body = child.GetComponent<Rigidbody2D>();
 			child_bodies.Add(cur_body);
@@ -263,6 +267,10 @@ public class CreatureGameController : MonoBehaviour
 		const double flip_cutoff = 10.0;
 		if (Math.Abs (creature_renderer.transform.rotation.eulerAngles.y) > flip_cutoff) {
 			is_dir_flipped = true;
+		}
+
+		if (parentRBD) {
+			parentRBD.isKinematic = noGravity;
 		}
 		
 		foreach (var cur_body in child_bodies) {
