@@ -48,22 +48,22 @@ namespace CreatureModule
 		public static Dictionary<string, object> LoadCreatureJSONData(string filename_in)
 		{
 			string text = System.IO.File.ReadAllText (filename_in);
-			var raw_obj = new System.Text.Json.JsonParser().Parse(text);
+			//var raw_obj = new System.Text.Json.JsonParser().Parse(text);
 
 			Dictionary<string, object> ret_dict = null;
-			//ret_dict = JsonReader.Deserialize(text, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
-			ret_dict = (Dictionary<string, object>)raw_obj;
+			ret_dict = JsonReader.Deserialize(text, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+			//ret_dict = (Dictionary<string, object>)raw_obj;
 
 			return ret_dict;
 		}
 
 		public static Dictionary<string, object> LoadCreatureJSONDataFromString(string text_in)
 		{
-			var raw_obj = new System.Text.Json.JsonParser().Parse(text_in);
+			//var raw_obj = new System.Text.Json.JsonParser().Parse(text_in);
 
 			Dictionary<string, object> ret_dict = null;
-			//ret_dict = JsonReader.Deserialize(text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
-			ret_dict = (Dictionary<string, object>)raw_obj;
+			ret_dict = JsonReader.Deserialize(text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+			//ret_dict = (Dictionary<string, object>)raw_obj;
 
 			return ret_dict;
 		}
@@ -78,20 +78,18 @@ namespace CreatureModule
 
 		public static float[] getFloatArray(System.Object raw_data)
 		{
-			List<object> cur_obj = (List<object>)raw_data;
-			object[] str_array = cur_obj.ToArray ();
+			System.Object[] cur_obj = (System.Object[])raw_data;
 
-			float[] ret_array = Array.ConvertAll (str_array, item => (float)Convert.ToSingle(item));
+			float[] ret_array = Array.ConvertAll (cur_obj, item => (float)Convert.ToSingle(item));
 
 			return ret_array;
 		}
 
 		public static int[] getIntArray(System.Object raw_data)
 		{
-			List<object> cur_obj = (List<object>)raw_data;
-			object[] str_array = cur_obj.ToArray ();
+			System.Object[] cur_obj = (System.Object[])raw_data;
 
-			int[] raw_array = Array.ConvertAll(str_array, item => (int)Convert.ToInt32(item));
+			int[] raw_array = Array.ConvertAll(cur_obj, item => (int)Convert.ToInt32(item));
 
 			return raw_array;
 		}
@@ -100,10 +98,10 @@ namespace CreatureModule
 		public static List<XnaGeometry.Vector2> ReadPointsArray2DJSON(Dictionary<string, object> data,
 		                                               string key)
 		{
-			List<object> cur_obj = (List<object>)data[key];
+			System.Object[] cur_obj = (System.Object[])data[key];
 
-			List<XnaGeometry.Vector2> ret_list = new List<XnaGeometry.Vector2>(cur_obj.Count);
-			int num_points = cur_obj.Count / 2;
+			List<XnaGeometry.Vector2> ret_list = new List<XnaGeometry.Vector2>(cur_obj.Length);
+			int num_points = cur_obj.Length / 2;
 			for (int i = 0; i < num_points; i++) 
 			{
 				int cur_index = i * 2;
@@ -119,10 +117,10 @@ namespace CreatureModule
 		public static List<float> ReadFloatArray3DJSON(Dictionary<string, object> data,
 		                                             string key)
 		{
-			List<object> cur_obj = (List<object>)data[key];
+			System.Object[] cur_obj = (System.Object[])data[key];
 
-			List<float> ret_list = new List<float>(cur_obj.Count);
-			int num_points = cur_obj.Count / 2;
+			List<float> ret_list = new List<float>(cur_obj.Length);
+			int num_points = cur_obj.Length / 2;
 
 			for (int i = 0; i < num_points; i++) 
 			{
@@ -145,9 +143,9 @@ namespace CreatureModule
 		public static List<float> ReadFloatArrayJSON(Dictionary<string, object> data,
 		                                      string key)
 		{
-			List<object>cur_obj = (List<object>)data[key];
-			List<float> ret_list = new List<float>(cur_obj.Count);
-			for (int i = 0; i < cur_obj.Count; i++) {
+			System.Object[] cur_obj = (System.Object[])data[key];
+			List<float> ret_list = new List<float>(cur_obj.Length);
+			for (int i = 0; i < cur_obj.Length; i++) {
 				ret_list.Add(Convert.ToSingle (cur_obj[i]));
 			}
 			
@@ -157,9 +155,9 @@ namespace CreatureModule
 		public static List<int> ReadIntArrayJSON(Dictionary<string, object> data,
 		                                    string key)
 		{
-			List<object> cur_obj = (List<object>)data[key];
-			List<int> ret_list = new List<int>(cur_obj.Count);
-			for (int i = 0; i < cur_obj.Count; i++) {
+			System.Object[] cur_obj = (System.Object[])data[key];
+			List<int> ret_list = new List<int>(cur_obj.Length);
+			for (int i = 0; i < cur_obj.Length; i++) {
 				ret_list.Add(Convert.ToInt32(cur_obj[i]));
 			}
 			
