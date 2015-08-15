@@ -86,17 +86,24 @@ public class CreatureAssetInspector : Editor {
 
 				var cur_start_time = animation_clip_overrides[cur_name].start_frame;
 				var cur_end_time = animation_clip_overrides[cur_name].end_frame;
+				bool make_point_cache = animation_clip_overrides[cur_name].make_point_cache;
 
-				EditorGUILayout.BeginHorizontal("Frame Range:", GUILayout.MaxHeight(50));
+				EditorGUILayout.BeginHorizontal("Frame Range:", GUILayout.MaxHeight(20));
 				EditorGUILayout.LabelField("Frame Range:", GUILayout.MaxWidth(100));
 				int new_start_frame = EditorGUILayout.IntField(cur_start_time, GUILayout.MaxWidth(50));
 
 				EditorGUILayout.LabelField("to", GUILayout.MaxWidth(20));
 				int new_end_frame = EditorGUILayout.IntField(cur_end_time, GUILayout.MaxWidth(50));
+
+				EditorGUILayout.EndHorizontal();
+
+				EditorGUILayout.BeginHorizontal("Point Cache Options", GUILayout.MaxHeight(50));
+				make_point_cache = EditorGUILayout.Toggle("Point Cache:", make_point_cache);
 				EditorGUILayout.EndHorizontal();
 
 				animation_clip_overrides[cur_name].start_frame = new_start_frame;
 				animation_clip_overrides[cur_name].end_frame = new_end_frame;
+				animation_clip_overrides[cur_name].make_point_cache = make_point_cache;
 
 				i++;
 			}

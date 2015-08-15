@@ -51,9 +51,13 @@ public class CreatureAnimationAssetData {
 	[SerializeField]
 	public int end_frame;
 
+	[SerializeField]
+	public bool make_point_cache;
+
 	public CreatureAnimationAssetData(int start_frame_in, int end_frame_in) {
 		start_frame = start_frame_in;
 		end_frame = end_frame_in;
+		make_point_cache = false;
 	}
 }
 
@@ -155,7 +159,6 @@ public class CreatureAsset : MonoBehaviour
 		creature_manager = new CreatureModule.CreatureManager (new_creature);
 		creature_manager.CreateAllAnimations (ref load_data);
 
-		// Set Animation Frame Ranges
 		var all_animations = creature_manager.animations;
 		foreach (KeyValuePair<string, CreatureAnimationAssetData> entry in animation_clip_overides) 
 		{
@@ -164,10 +167,19 @@ public class CreatureAsset : MonoBehaviour
 
 			if(all_animations.ContainsKey(cur_name)) 
 			{
+				// Set Animation Frame Ranges
 				all_animations[cur_name].start_time = cur_animation_data.start_frame;
 				all_animations[cur_name].end_time = cur_animation_data.end_frame;
+
+				// Decide if we need to make point caches
+				if(cur_animation_data.make_point_cache)
+				{
+					creature_manager.MakePointCache(cur_name);
+				}
 			}
 		}
+
+
 
 		is_dirty = true;
 

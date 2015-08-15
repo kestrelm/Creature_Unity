@@ -63,6 +63,7 @@ public class CreatureRenderer : MonoBehaviour
 	public int animation_choice_index;
 	public string active_animation_name;
 	public float blend_rate = 0.1f;
+	public float region_offsets_z = 0.01f;
 	public bool should_loop;
 
 	private Mesh createMesh () {
@@ -89,6 +90,7 @@ public class CreatureRenderer : MonoBehaviour
 	public CreatureRenderer()
 	{
 		local_time_scale = 2.0f;
+		region_offsets_z = 0.1f;
 	}
 	
 	public virtual void Reset()
@@ -314,6 +316,7 @@ public class CreatureRenderer : MonoBehaviour
 			}
 		}
 
+		creature_manager.region_offsets_z = region_offsets_z;
 		creature_manager.should_loop = should_loop;
 		creature_manager.Update (time_delta);
 	}

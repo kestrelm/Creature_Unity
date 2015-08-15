@@ -48,17 +48,23 @@ namespace CreatureModule
 		public static Dictionary<string, object> LoadCreatureJSONData(string filename_in)
 		{
 			string text = System.IO.File.ReadAllText (filename_in);
+			var raw_obj = new System.Text.Json.JsonParser().Parse(text);
+
 			Dictionary<string, object> ret_dict = null;
-			ret_dict = JsonReader.Deserialize(text, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+			//ret_dict = JsonReader.Deserialize(text, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+			ret_dict = (Dictionary<string, object>)raw_obj;
 
 			return ret_dict;
 		}
 
 		public static Dictionary<string, object> LoadCreatureJSONDataFromString(string text_in)
 		{
+			var raw_obj = new System.Text.Json.JsonParser().Parse(text_in);
+
 			Dictionary<string, object> ret_dict = null;
-			ret_dict = JsonReader.Deserialize(text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
-			
+			//ret_dict = JsonReader.Deserialize(text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+			ret_dict = (Dictionary<string, object>)raw_obj;
+
 			return ret_dict;
 		}
 
@@ -72,19 +78,20 @@ namespace CreatureModule
 
 		public static float[] getFloatArray(System.Object raw_data)
 		{
-			System.Object[] cur_obj = (System.Object[])raw_data;
+			List<object> cur_obj = (List<object>)raw_data;
+			object[] str_array = cur_obj.ToArray ();
 
-			double[] raw_array = Array.ConvertAll(cur_obj, item => (double)item);
-			float[] ret_array = Array.ConvertAll (raw_array, item => (float)item);
+			float[] ret_array = Array.ConvertAll (str_array, item => (float)Convert.ToSingle(item));
 
 			return ret_array;
 		}
 
 		public static int[] getIntArray(System.Object raw_data)
 		{
-			System.Object[] cur_obj = (System.Object[])raw_data;
+			List<object> cur_obj = (List<object>)raw_data;
+			object[] str_array = cur_obj.ToArray ();
 
-			int[] raw_array = Array.ConvertAll(cur_obj, item => (int)item);
+			int[] raw_array = Array.ConvertAll(str_array, item => (int)Convert.ToInt32(item));
 
 			return raw_array;
 		}
@@ -93,14 +100,17 @@ namespace CreatureModule
 		public static List<XnaGeometry.Vector2> ReadPointsArray2DJSON(Dictionary<string, object> data,
 		                                               string key)
 		{
-			float[] raw_array = getFloatArray(data[key]);
-			List<XnaGeometry.Vector2> ret_list = new List<XnaGeometry.Vector2>();
-			int num_points = raw_array.Length / 2;
+			List<object> cur_obj = (List<object>)data[key];
+
+			List<XnaGeometry.Vector2> ret_list = new List<XnaGeometry.Vector2>(cur_obj.Count);
+			int num_points = cur_obj.Count / 2;
 			for (int i = 0; i < num_points; i++) 
 			{
 				int cur_index = i * 2;
 				ret_list.Add(
-					new XnaGeometry.Vector2(raw_array[0 + cur_index], raw_array[1 + cur_index]) );
+					new XnaGeometry.Vector2(Convert.ToDouble(cur_obj[0 + cur_index]),
+				                        Convert.ToDouble(cur_obj[1 + cur_index])) );
+
 			}
 			
 			return ret_list;
@@ -109,15 +119,16 @@ namespace CreatureModule
 		public static List<float> ReadFloatArray3DJSON(Dictionary<string, object> data,
 		                                             string key)
 		{
-			float[] raw_array = getFloatArray(data[key]);
+			List<object> cur_obj = (List<object>)data[key];
 
-			List<float> ret_list = new List<float>();
-			int num_points = raw_array.Length / 2;
+			List<float> ret_list = new List<float>(cur_obj.Count);
+			int num_points = cur_obj.Count / 2;
+
 			for (int i = 0; i < num_points; i++) 
 			{
 				int cur_index = i * 2;
-				ret_list.Add((float)raw_array[0 + cur_index]);
-				ret_list.Add((float)raw_array[1 + cur_index]);
+				ret_list.Add((float)Convert.ToSingle(cur_obj[0 + cur_index]));
+				ret_list.Add((float)Convert.ToSingle(cur_obj[1 + cur_index]));
 				ret_list.Add(0);
 			}
 			
@@ -134,17 +145,23 @@ namespace CreatureModule
 		public static List<float> ReadFloatArrayJSON(Dictionary<string, object> data,
 		                                      string key)
 		{
-			float[] raw_array = getFloatArray(data[key]);
-			List<float> ret_list = new List<float>(raw_array);
-
+			List<object>cur_obj = (List<object>)data[key];
+			List<float> ret_list = new List<float>(cur_obj.Count);
+			for (int i = 0; i < cur_obj.Count; i++) {
+				ret_list.Add(Convert.ToSingle (cur_obj[i]));
+			}
+			
 			return ret_list;
 		}
 
 		public static List<int> ReadIntArrayJSON(Dictionary<string, object> data,
 		                                    string key)
 		{
-			int[] raw_array = getIntArray (data[key]);
-			List<int> ret_list = new List<int>(raw_array);
+			List<object> cur_obj = (List<object>)data[key];
+			List<int> ret_list = new List<int>(cur_obj.Count);
+			for (int i = 0; i < cur_obj.Count; i++) {
+				ret_list.Add(Convert.ToInt32(cur_obj[i]));
+			}
 			
 			return ret_list;
 		}
@@ -188,7 +205,7 @@ namespace CreatureModule
 				string cur_name = cur_node.Key;
 				Dictionary<string, object> node_dict = (Dictionary<string, object>)cur_node.Value;
 
-				int cur_id =  (int)node_dict["id"]; //GetJSONNodeFromKey(*cur_node, "id")->value.toNumber();
+				int cur_id =  Convert.ToInt32(node_dict["id"]); //GetJSONNodeFromKey(*cur_node, "id")->value.toNumber();
 				XnaGeometry.Matrix cur_parent_mat = Utils.ReadMatrixJSON(node_dict, "restParentMat");
 
 				XnaGeometry.Vector4 cur_local_rest_start_pt = Utils.ReadVector4JSON(node_dict, "localRestStartPt");
@@ -253,11 +270,11 @@ namespace CreatureModule
 				string cur_name = cur_node.Key;
 				Dictionary<string, object> node_dict = (Dictionary<string, object>)cur_node.Value;
 
-				int cur_id = (int)node_dict["id"]; //(int)GetJSONNodeFromKey(*cur_node, "id")->value.toNumber();
-				int cur_start_pt_index = (int)node_dict["start_pt_index"]; //(int)GetJSONNodeFromKey(*cur_node, "start_pt_index")->value.toNumber();
-				int cur_end_pt_index = (int)node_dict["end_pt_index"]; //(int)GetJSONNodeFromKey(*cur_node, "end_pt_index")->value.toNumber();
-				int cur_start_index = (int)node_dict["start_index"]; //(int)GetJSONNodeFromKey(*cur_node, "start_index")->value.toNumber();
-				int cur_end_index = (int)node_dict["end_index"]; //(int)GetJSONNodeFromKey(*cur_node, "end_index")->value.toNumber();
+				int cur_id = Convert.ToInt32 (node_dict["id"]); //(int)GetJSONNodeFromKey(*cur_node, "id")->value.toNumber();
+				int cur_start_pt_index = Convert.ToInt32 (node_dict["start_pt_index"]); //(int)GetJSONNodeFromKey(*cur_node, "start_pt_index")->value.toNumber();
+				int cur_end_pt_index = Convert.ToInt32 (node_dict["end_pt_index"]); //(int)GetJSONNodeFromKey(*cur_node, "end_pt_index")->value.toNumber();
+				int cur_start_index = Convert.ToInt32 (node_dict["start_index"]); //(int)GetJSONNodeFromKey(*cur_node, "start_index")->value.toNumber();
+				int cur_end_index = Convert.ToInt32 (node_dict["end_index"]); //(int)GetJSONNodeFromKey(*cur_node, "end_index")->value.toNumber();
 				
 				MeshRenderRegion new_region = new MeshRenderRegion(indices_in,
 				                                                   rest_pts_in,
@@ -481,7 +498,7 @@ namespace CreatureModule
 					Dictionary<string, object> opacity_dict = (Dictionary<string, object>)opacity_node.Value;
 					
 					MeshOpacityCache cache_data = new MeshOpacityCache(cur_name);
-					double cur_opacity =  (double)opacity_dict["opacity"];
+					double cur_opacity =  Convert.ToDouble (opacity_dict["opacity"]);
 					cache_data.setOpacity((float)cur_opacity);
 					
 					cache_list.Add(cache_data);
@@ -710,6 +727,7 @@ namespace CreatureModule
 		public bool do_auto_blending;
 		public float auto_blend_delta;
 		public bool should_loop;
+		public float region_offsets_z;
 		public Action<Dictionary<string, MeshBone> > bones_override_callback;
 
 		public CreatureManager(CreatureModule.Creature target_creature_in)
@@ -719,6 +737,7 @@ namespace CreatureModule
 			run_time = 0;
 			time_scale = 30.0f;
 			blending_factor = 0;
+			region_offsets_z = 0.1f;
 			animations = new Dictionary<string, CreatureAnimation> ();
 			bones_override_callback = null;
 			region_override_alphas = new Dictionary<string, float> ();
@@ -835,35 +854,44 @@ namespace CreatureModule
 			CreatureAnimation cur_animation = animations[active_animation_name];
 			run_time = cur_animation.start_time;
 			
-			MeshBoneUtil.MeshDisplacementCacheManager displacement_cache_manager = cur_animation.displacement_cache;
-			List<MeshBoneUtil.MeshDisplacementCache> displacement_table =
-				displacement_cache_manager.displacement_cache_table[0];
-			
-			MeshBoneUtil.MeshUVWarpCacheManager uv_warp_cache_manager = cur_animation.uv_warp_cache;
-			List<MeshBoneUtil.MeshUVWarpCache> uv_swap_table =
-				uv_warp_cache_manager.uv_cache_table[0];
-			
-			MeshBoneUtil.MeshRenderBoneComposition render_composition =
-				target_creature.render_composition;
-
-			List<MeshBoneUtil.MeshRenderRegion> all_regions = render_composition.getRegions();
-			
-			int index = 0;
-			foreach(MeshBoneUtil.MeshRenderRegion cur_region in all_regions) 
-			{
-				// Setup active or inactive displacements
-				bool use_local_displacements = !(displacement_table[index].getLocalDisplacements().Count == 0);
-				bool use_post_displacements = !(displacement_table[index].getPostDisplacements().Count == 0);
-				cur_region.setUseLocalDisplacements(use_local_displacements);
-				cur_region.setUsePostDisplacements(use_post_displacements);
-				
-				// Setup active or inactive uv swaps
-				cur_region.setUseUvWarp(uv_swap_table[index].getEnabled());
-
-				index++;
-			}
+			UpdateRegionSwitches (name_in);
 
 			return true;
+		}
+
+		// Update the region switching properties
+		private void UpdateRegionSwitches(string animation_name_in)
+		{
+			if (animations.ContainsKey(animation_name_in)) {
+				var cur_animation = animations[animation_name_in];
+				
+				var displacement_cache_manager = cur_animation.displacement_cache;
+				var displacement_table =
+					displacement_cache_manager.displacement_cache_table[0];
+				
+				var uv_warp_cache_manager = cur_animation.uv_warp_cache;
+				var uv_swap_table =
+					uv_warp_cache_manager.uv_cache_table[0];
+				
+				MeshBoneUtil.MeshRenderBoneComposition render_composition =
+					target_creature.render_composition;
+				List<MeshBoneUtil.MeshRenderRegion> all_regions = render_composition.getRegions();
+
+				int index = 0;
+				foreach(MeshBoneUtil.MeshRenderRegion cur_region in all_regions) 
+				{
+					// Setup active or inactive displacements
+					bool use_local_displacements = !(displacement_table[index].getLocalDisplacements().Count == 0);
+					bool use_post_displacements = !(displacement_table[index].getPostDisplacements().Count == 0);
+					cur_region.setUseLocalDisplacements(use_local_displacements);
+					cur_region.setUsePostDisplacements(use_post_displacements);
+					
+					// Setup active or inactive uv swaps
+					cur_region.setUseUvWarp(uv_swap_table[index].getEnabled());
+					
+					index++;
+				}
+			}
 		}
 		
 		// Returns the name of the currently active animation
@@ -966,8 +994,10 @@ namespace CreatureModule
 					if(cur_animation.hasCachePts())
 					{
 						cur_animation.poseFromCachePts(cur_animation_run_time, blend_render_pts[i], target_creature.total_num_pts);
+						ApplyUVSwapsAndColorChanges(cur_animation_name, blend_render_pts[i], cur_animation_run_time);
 					}
 					else {
+						UpdateRegionSwitches(active_blend_animation_names[i]);
 						PoseCreature(active_blend_animation_names[i], blend_render_pts[i], cur_animation_run_time);
 					}
 				}
@@ -988,7 +1018,7 @@ namespace CreatureModule
 				if(cur_animation.hasCachePts())
 				{
 					cur_animation.poseFromCachePts(getRunTime(), target_creature.render_pts, target_creature.total_num_pts);
-					
+					ApplyUVSwapsAndColorChanges(active_animation_name, target_creature.render_pts, getRunTime());
 				}
 				else {
 					PoseCreature(active_animation_name, target_creature.render_pts, getRunTime());
@@ -1250,6 +1280,49 @@ namespace CreatureModule
 		{
 			region_override_alphas [region_name_in] = value_in;
 		}
+
+		private void ApplyUVSwapsAndColorChanges(string animation_name_in,
+		                                         List<float> target_pts,
+		                                         float input_run_time)
+		{
+			CreatureAnimation cur_animation = animations[animation_name_in];
+			
+			MeshBoneUtil.MeshUVWarpCacheManager uv_warp_cache_manager = cur_animation.uv_warp_cache;
+			MeshBoneUtil.MeshOpacityCacheManager opacity_cache_manager = cur_animation.opacity_cache;
+			
+			MeshBoneUtil.MeshRenderBoneComposition render_composition =
+				target_creature.render_composition;
+
+			Dictionary<string, MeshBoneUtil.MeshRenderRegion> regions_map =
+				render_composition.getRegionsMap();
+
+			uv_warp_cache_manager.retrieveValuesAtTime(input_run_time,
+			                                           regions_map);
+			
+			opacity_cache_manager.retrieveValuesAtTime(input_run_time,
+			                                           regions_map);
+			
+			UpdateRegionColours ();
+
+			List<MeshBoneUtil.MeshRenderRegion> cur_regions =
+				render_composition.getRegions();
+			for(int j = 0; j < cur_regions.Count; j++) {
+				MeshBoneUtil.MeshRenderRegion cur_region = cur_regions[j];
+
+				if(cur_region.use_uv_warp)
+				{
+					cur_region.runUvWarp();
+				}
+				
+				// add in z offsets for different regions
+				for(int k = cur_region.getStartPtIndex() * 3;
+				    k <= cur_region.getEndPtIndex() * 3; 
+				    k+=3)
+				{
+					target_pts[k + 2] = j * region_offsets_z;
+				}
+			}
+		}
 		
 		public void PoseCreature(string animation_name_in,
 		                  		 List<float> target_pts,
@@ -1310,7 +1383,7 @@ namespace CreatureModule
 				    k <= cur_region.getEndPtIndex() * 3; 
 				    k+=3)
 				{
-					target_pts[k + 2] = j * 0.01f;
+					target_pts[k + 2] = j * region_offsets_z;
 				}
 			}
 		}
