@@ -90,7 +90,7 @@ public class CreatureRenderer : MonoBehaviour
 	public CreatureRenderer()
 	{
 		local_time_scale = 2.0f;
-		region_offsets_z = 0.1f;
+		region_offsets_z = 0.01f;
 	}
 	
 	public virtual void Reset()

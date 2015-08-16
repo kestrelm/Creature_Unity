@@ -735,7 +735,7 @@ namespace CreatureModule
 			run_time = 0;
 			time_scale = 30.0f;
 			blending_factor = 0;
-			region_offsets_z = 0.1f;
+			region_offsets_z = 0.01f;
 			animations = new Dictionary<string, CreatureAnimation> ();
 			bones_override_callback = null;
 			region_override_alphas = new Dictionary<string, float> ();
