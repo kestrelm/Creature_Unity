@@ -99,12 +99,15 @@ public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IS
 
 public class CreatureAsset : MonoBehaviour
 {
-	public TextAsset creatureJSON;
+	public TextAsset creatureJSON, compressedCreatureJSON;
 	public CreatureManager creature_manager;
 	private bool is_dirty;
 
 	[SerializeField]
 	public DictionaryOfStringAndAnimation animation_clip_overides = new DictionaryOfStringAndAnimation ();
+
+	[SerializeField]
+	public bool useCompressedAsset = false;
 
 #if UNITY_EDITOR
 	[MenuItem("Creature/CreatureAsset")]
@@ -126,6 +129,7 @@ public class CreatureAsset : MonoBehaviour
 
 	public void ResetState () {
 		creatureJSON = null;
+		compressedCreatureJSON = null;
 		creature_manager = null;
 		is_dirty = false;
 	}
@@ -140,9 +144,44 @@ public class CreatureAsset : MonoBehaviour
 		is_dirty = flag_in;
 	}
 
+	public void SaveCompressedText(string filename, string text_in)
+	{
+		byte[] text1 =   System.Text.Encoding.ASCII.GetBytes(text_in);
+		byte[] compressed = LZMAtools.CompressByteArrayToLZMAByteArray(text1);
+		File.WriteAllBytes (filename, compressed);
+	}
+
+	public string DecodeCompressedBytes(byte[] bytes)
+	{
+		byte[] decompressed = LZMAtools.DecompressLZMAByteArrayToByteArray (bytes);
+		return System.Text.Encoding.Default.GetString(decompressed);
+	}
+
+	public bool HasNoValidAsset()
+	{
+		return (!useCompressedAsset && creatureJSON == null) || (useCompressedAsset && compressedCreatureJSON == null);
+	}
+
+	public string GetAssetString()
+	{
+		if (HasNoValidAsset ()) {
+			return null;
+		}
+
+		string readString = null;
+		if (useCompressedAsset) {
+			readString = DecodeCompressedBytes (compressedCreatureJSON.bytes);
+		} 
+		else {
+			readString = creatureJSON.text;
+		}
+
+		return readString;
+	}
+
 	public CreatureManager GetCreatureManager()
 	{
-		if (creatureJSON == null) 
+		if (HasNoValidAsset())
 		{
 			Debug.LogError("Input Creature JSON file not set for CreatureAsset: " + name, this);
 			ResetState ();
@@ -153,8 +192,12 @@ public class CreatureAsset : MonoBehaviour
 		{
 			return creature_manager;
 		}
-	
-		Dictionary<string, object> load_data = CreatureModule.Utils.LoadCreatureJSONDataFromString (creatureJSON.text);
+			
+		Dictionary<string, object> load_data;
+		string readString = GetAssetString ();
+
+		load_data = CreatureModule.Utils.LoadCreatureJSONDataFromString (readString);
+
 		CreatureModule.Creature new_creature = new CreatureModule.Creature(ref load_data);
 		creature_manager = new CreatureModule.CreatureManager (new_creature);
 		creature_manager.CreateAllAnimations (ref load_data);

@@ -12,10 +12,14 @@ using System.Collections.Generic;
 [CustomEditor(typeof(CreatureAsset))]
 public class CreatureAssetInspector : Editor {
 	private SerializedProperty creatureJSON;
+	private SerializedProperty compressedCreatureJSON;
 	private List<string> animation_names;
 
 	[SerializeField]
 	public DictionaryOfStringAndAnimation animation_clip_overrides;
+
+	[SerializeField]
+	public bool useCompressedAsset;
 
 	CreatureAssetInspector()
 	{
@@ -25,23 +29,41 @@ public class CreatureAssetInspector : Editor {
 	void OnEnable () 
 	{
 		creatureJSON = serializedObject.FindProperty("creatureJSON");
+		compressedCreatureJSON = serializedObject.FindProperty("compressedCreatureJSON");
 	}
 
 	void UpdateData()
 	{
 		CreatureAsset creature_asset = (CreatureAsset)target;
+
 		TextAsset text_asset = (TextAsset)creatureJSON.objectReferenceValue;
-		if (text_asset.text.Length > 0) {
-			creature_asset.ResetState();
-			creature_asset.creatureJSON = text_asset;
-			FillAnimationNames();
+		if (text_asset) {
+			if (text_asset.text.Length > 0) {
+				creature_asset.ResetState ();
+				creature_asset.creatureJSON = text_asset;
+				FillAnimationNames ();
+			}
 		}
+
+		TextAsset compressed_text_asset = (TextAsset)compressedCreatureJSON.objectReferenceValue;
+		if (compressed_text_asset) {
+			if (compressed_text_asset.text.Length > 0) {
+				creature_asset.ResetState ();
+				creature_asset.compressedCreatureJSON = compressed_text_asset;
+				FillAnimationNames ();
+			} 
+		}
+
 	}
 
 	void FillAnimationNames()
 	{
 		CreatureAsset creature_asset = (CreatureAsset)target;
 		CreatureManager creature_manager = creature_asset.GetCreatureManager ();
+		if (creature_manager == null) {
+			return;
+		}
+
 		Dictionary<string, CreatureModule.CreatureAnimation> all_animations
 			= creature_manager.animations;
 		
@@ -63,20 +85,25 @@ public class CreatureAssetInspector : Editor {
 
 	override public void OnInspectorGUI () 
 	{
+		CreatureAsset creature_asset = (CreatureAsset)target;
+
 		serializedObject.Update();
 
 		EditorGUI.BeginChangeCheck();
 
 		EditorGUILayout.PropertyField (creatureJSON);
+		EditorGUILayout.PropertyField (compressedCreatureJSON);
 
 		bool did_change = EditorGUI.EndChangeCheck();
 
-		if ((creatureJSON.objectReferenceValue != null) && did_change)
+		creature_asset.useCompressedAsset = EditorGUILayout.Toggle ("Use Compressed Asset: ", creature_asset.useCompressedAsset);
+
+		if ((creatureJSON.objectReferenceValue || compressedCreatureJSON.objectReferenceValue) && did_change)
 		{
 			UpdateData();
 		}
 
-		if (creatureJSON.objectReferenceValue != null) {
+		if (creatureJSON.objectReferenceValue || compressedCreatureJSON.objectReferenceValue) {
 			FillAnimationNames();
 
 			int i = 1;
@@ -113,6 +140,29 @@ public class CreatureAssetInspector : Editor {
 		{
 			CreateStateMachine();
 		}
+
+		EditorGUILayout.LabelField("Compression Options", GUILayout.MaxHeight(20));
+		if (GUILayout.Button ("Export as Compressed File")) 
+		{
+			SaveCompressedFile();
+		}
+	}
+
+	public void SaveCompressedFile()
+	{
+		var path = EditorUtility.SaveFilePanel(
+			"Save data as compressed file",
+			"",
+			"characterCompressed.bytes",
+			"bytes");
+
+		if (path.Length != 0) {
+			CreatureAsset creature_asset = (CreatureAsset)target;
+			TextAsset text_asset = (TextAsset)creatureJSON.objectReferenceValue;
+			string save_text = text_asset.text;
+			creature_asset.SaveCompressedText(path, save_text);
+		}
+
 	}
 
 	public void CreateStateMachine()
