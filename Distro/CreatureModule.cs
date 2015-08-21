@@ -764,8 +764,12 @@ namespace CreatureModule
 		// This speeds up playback but you will lose the ability to directly
 		// manipulate the bones.
 		public void
-		MakePointCache(String animation_name_in)
+		MakePointCache(String animation_name_in, int gapStep)
 		{
+			if (gapStep < 1) {
+				gapStep = 1;
+			}
+
 			float store_run_time = getRunTime();
 			CreatureAnimation cur_animation = animations[animation_name_in];
 			if(cur_animation.hasCachePts())
@@ -776,16 +780,55 @@ namespace CreatureModule
 			
 			List<List<float> > cache_pts_list = cur_animation.cache_pts;
 			
-			for(int i = (int)cur_animation.start_time; i <= (int)cur_animation.end_time; i++)
+			//for(int i = (int)cur_animation.start_time; i <= (int)cur_animation.end_time; i++)
+			int i = (int)cur_animation.start_time;
+			while(true)
 			{
 				setRunTime((float)i);
 				List<float> new_pts = new List<float>(new float[target_creature.total_num_pts * 3]);
 				PoseCreature(animation_name_in, new_pts, getRunTime());
-				
+
+				int realStep = gapStep;
+				if(i + realStep > cur_animation.end_time)
+				{
+					realStep = (int)cur_animation.end_time - i;
+				}
+
+				bool firstCase = realStep > 1;
+				bool secondCase = cache_pts_list.Count >= 1;
+				if(firstCase && secondCase)
+				{
+					// fill in the gaps
+					var prev_pts = cache_pts_list[cache_pts_list.Count - 1];
+					for(int j = 0; j < realStep; j++)
+					{
+						float factor = (float)j / (float)realStep;
+						var gap_pts = InterpFloatList(prev_pts, new_pts, factor);
+						cache_pts_list.Add (gap_pts);
+					}
+				}
+
 				cache_pts_list.Add(new_pts);
+				i += realStep;
+
+				if(i > cur_animation.end_time || realStep == 0)
+				{
+					break;
+				}
 			}
 			
 			setRunTime(store_run_time);
+		}
+
+		public List<float> InterpFloatList(List<float> firstList, List<float> secondList, float factor)
+		{
+			List<float> ret_float_list = new List<float> (firstList.Count);
+			for (int i = 0; i < firstList.Count; i++) {
+				float new_val = ((1.0f - factor) * firstList[i]) + (factor * secondList[i]);
+				ret_float_list.Add (new_val);
+			}
+
+			return ret_float_list;
 		}
 		
 		// Create an animation

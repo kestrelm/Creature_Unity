@@ -54,10 +54,14 @@ public class CreatureAnimationAssetData {
 	[SerializeField]
 	public bool make_point_cache;
 
+	[SerializeField]
+	public int cache_approximation;
+
 	public CreatureAnimationAssetData(int start_frame_in, int end_frame_in) {
 		start_frame = start_frame_in;
 		end_frame = end_frame_in;
 		make_point_cache = false;
+		cache_approximation = 1;
 	}
 }
 
@@ -217,7 +221,13 @@ public class CreatureAsset : MonoBehaviour
 				// Decide if we need to make point caches
 				if(cur_animation_data.make_point_cache)
 				{
-					creature_manager.MakePointCache(cur_name);
+					var stopWatch = new System.Diagnostics.Stopwatch();
+					stopWatch.Start();
+
+					creature_manager.MakePointCache(cur_name, cur_animation_data.cache_approximation);
+
+					stopWatch.Stop ();
+					Debug.Log ("Creature Point Cache generation took: " + stopWatch.ElapsedMilliseconds);
 				}
 			}
 		}
