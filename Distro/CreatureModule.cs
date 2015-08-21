@@ -1036,6 +1036,7 @@ namespace CreatureModule
 					{
 						cur_animation.poseFromCachePts(cur_animation_run_time, blend_render_pts[i], target_creature.total_num_pts);
 						ApplyUVSwapsAndColorChanges(cur_animation_name, blend_render_pts[i], cur_animation_run_time);
+						PoseJustBones(cur_animation_name, cur_animation_run_time);
 					}
 					else {
 						UpdateRegionSwitches(active_blend_animation_names[i]);
@@ -1060,6 +1061,7 @@ namespace CreatureModule
 				{
 					cur_animation.poseFromCachePts(getRunTime(), target_creature.render_pts, target_creature.total_num_pts);
 					ApplyUVSwapsAndColorChanges(active_animation_name, target_creature.render_pts, getRunTime());
+					PoseJustBones(cur_animation.name, getRunTime());
 				}
 				else {
 					PoseCreature(active_animation_name, target_creature.render_pts, getRunTime());
@@ -1362,6 +1364,26 @@ namespace CreatureModule
 				{
 					target_pts[k + 2] = j * region_offsets_z;
 				}
+			}
+		}
+
+		public void PoseJustBones(string animation_name_in,
+		                          float input_run_time)
+		{
+			CreatureAnimation cur_animation = animations[animation_name_in];
+			MeshBoneUtil.MeshRenderBoneComposition render_composition =
+				target_creature.render_composition;
+
+			MeshBoneUtil.MeshBoneCacheManager bone_cache_manager = cur_animation.bones_cache;
+			Dictionary<string, MeshBoneUtil.MeshBone> bones_map =
+				render_composition.getBonesMap();
+
+			bone_cache_manager.retrieveValuesAtTime(input_run_time,
+			                                        ref bones_map);
+			
+			if(bones_override_callback != null) 
+			{
+				bones_override_callback(bones_map);
 			}
 		}
 		
