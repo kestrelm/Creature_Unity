@@ -124,6 +124,16 @@ namespace MeshBoneUtil
 
 			imaginary = real;
 		}
+
+		public static void zeroOut(ref dualQuat dq)
+		{
+			dq.real.W = 0;
+			dq.real.X = 0;
+			dq.real.Y = 0;
+			dq.real.Z = 0;
+
+			dq.imaginary = dq.real;
+		}
 		
 		public dualQuat(XnaGeometry.Quaternion q0, XnaGeometry.Vector3 t)
 		{
@@ -780,7 +790,10 @@ namespace MeshBoneUtil
 			int write_pt_index = output_start_index;
 			
 			// point posing
-			for(int i = 0; i < getNumPts(); i++) {
+			int cur_num_pts = getNumPts ();
+			dualQuat accum_dq = new dualQuat();
+
+			for(int i = 0; i < cur_num_pts; i++) {
 				XnaGeometry.Vector4 cur_rest_pt =
 						new XnaGeometry.Vector4(store_rest_pts[0 + read_pt_index], 
 				        			            store_rest_pts[1 + read_pt_index], 
@@ -791,11 +804,12 @@ namespace MeshBoneUtil
 					cur_rest_pt.Y += local_displacements[i].Y;
 				}
 				
-				dualQuat accum_dq = new dualQuat();
-				
+				dualQuat.zeroOut(ref accum_dq);
+
 				var bone_indices = relevant_bones_indices[i];
-				foreach(var j in bone_indices)
+				for(int k = 0; k < bone_indices.Count; k++)
 				{
+					int j = bone_indices[k];
 					MeshBone cur_bone = fast_bones_map[j];
 					float cur_weight_val = fast_normal_weight_map[j][i];
 					float cur_im_weight_val = cur_weight_val;

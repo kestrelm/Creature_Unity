@@ -687,7 +687,7 @@ namespace CreatureModule
 		{
 			int cur_floor_time = getIndexByTime((int)Math.Floor(time_in));
 			int cur_ceil_time = getIndexByTime((int)Math.Ceiling(time_in));
-			float cur_ratio = time_in - (float)cur_floor_time;
+			float cur_ratio = (time_in - start_time) - (float)cur_floor_time;
 			
 			List<float> set_pt = target_pts;
 			List<float> floor_pts = cache_pts[cur_floor_time];
@@ -784,7 +784,7 @@ namespace CreatureModule
 			int i = (int)cur_animation.start_time;
 			while(true)
 			{
-				setRunTime((float)i);
+				run_time = (float)i;
 				List<float> new_pts = new List<float>(new float[target_creature.total_num_pts * 3]);
 				PoseCreature(animation_name_in, new_pts, getRunTime());
 
