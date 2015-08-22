@@ -75,7 +75,7 @@ public class CreatureRenderer : MonoBehaviour
 	}
 
 #if UNITY_EDITOR
-	[MenuItem("Creature/CreatureRenderer")]
+	[MenuItem("GameObject/Creature/CreatureRenderer")]
 	static CreatureRenderer CreateRenderer()
 	{
 		GameObject newObj = new GameObject();

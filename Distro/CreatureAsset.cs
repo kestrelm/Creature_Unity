@@ -114,7 +114,7 @@ public class CreatureAsset : MonoBehaviour
 	public bool useCompressedAsset = false;
 
 #if UNITY_EDITOR
-	[MenuItem("Creature/CreatureAsset")]
+	[MenuItem("GameObject/Creature/CreatureAsset")]
 	static CreatureAsset CreateCreatureAsset()
 	{
 		GameObject newObj = new GameObject();

@@ -57,7 +57,7 @@ public class CreatureSwitchItemRenderer : MonoBehaviour {
 	}
 
 #if UNITY_EDITOR
-	[MenuItem("Creature/CreatureSwitchItemRenderer")]
+	[MenuItem("GameObject/Creature/CreatureSwitchItemRenderer")]
 	static CreatureSwitchItemRenderer CreateRenderer()
 	{
 		GameObject newObj = new GameObject();

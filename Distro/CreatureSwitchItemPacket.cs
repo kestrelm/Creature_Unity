@@ -14,7 +14,7 @@ public class CreatureSwitchItemPacket : MonoBehaviour {
 	public float posX, posY, item_width, item_height, canvas_width, canvas_height;
 	
 	#if UNITY_EDITOR
-	[MenuItem("Creature/CreatureSwitchItemPacket")]
+	[MenuItem("GameObject/Creature/CreatureSwitchItemPacket")]
 	static CreatureSwitchItemPacket CreatePacket()
 	{
 		GameObject newObj = new GameObject();

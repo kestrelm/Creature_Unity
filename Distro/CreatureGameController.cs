@@ -69,7 +69,7 @@ public class CreatureGameController : MonoBehaviour
 
 #if UNITY_EDITOR
 	// Controller creation
-	[MenuItem("Creature/CreatureGameController")]
+	[MenuItem("GameObject/Creature/CreatureGameController")]
 	static CreatureGameController CreateCreatureGameController()
 	{
 		GameObject newObj = new GameObject();
