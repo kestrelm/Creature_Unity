@@ -13,6 +13,7 @@ using System.Collections.Generic;
 public class CreatureAssetInspector : Editor {
 	private SerializedProperty creatureJSON;
 	private SerializedProperty compressedCreatureJSON;
+	private SerializedProperty flatCreatureData;
 	private List<string> animation_names;
 
 	[SerializeField]
@@ -30,6 +31,7 @@ public class CreatureAssetInspector : Editor {
 	{
 		creatureJSON = serializedObject.FindProperty("creatureJSON");
 		compressedCreatureJSON = serializedObject.FindProperty("compressedCreatureJSON");
+		flatCreatureData = serializedObject.FindProperty ("flatCreatureData");
 	}
 
 	void UpdateData()
@@ -50,6 +52,15 @@ public class CreatureAssetInspector : Editor {
 			if (compressed_text_asset.text.Length > 0) {
 				creature_asset.ResetState ();
 				creature_asset.compressedCreatureJSON = compressed_text_asset;
+				FillAnimationNames ();
+			} 
+		}
+
+		TextAsset flat_text_asset = (TextAsset)flatCreatureData.objectReferenceValue;
+		if (flat_text_asset) {
+			if (flat_text_asset.text.Length > 0) {
+				creature_asset.ResetState ();
+				creature_asset.flatCreatureData = flat_text_asset;
 				FillAnimationNames ();
 			} 
 		}
@@ -93,17 +104,21 @@ public class CreatureAssetInspector : Editor {
 
 		EditorGUILayout.PropertyField (creatureJSON);
 		EditorGUILayout.PropertyField (compressedCreatureJSON);
+		EditorGUILayout.PropertyField (flatCreatureData);
 
 		bool did_change = EditorGUI.EndChangeCheck();
 
 		creature_asset.useCompressedAsset = EditorGUILayout.Toggle ("Use Compressed Asset: ", creature_asset.useCompressedAsset);
+		creature_asset.useFlatDataAsset = EditorGUILayout.Toggle ("Use Flat Data Asset: ", creature_asset.useFlatDataAsset);
 
-		if ((creatureJSON.objectReferenceValue || compressedCreatureJSON.objectReferenceValue) && did_change)
+		if ((creatureJSON.objectReferenceValue || compressedCreatureJSON.objectReferenceValue || flatCreatureData.objectReferenceValue) 
+		    && did_change)
 		{
 			UpdateData();
 		}
 
-		if (creatureJSON.objectReferenceValue || compressedCreatureJSON.objectReferenceValue) {
+		if (creatureJSON.objectReferenceValue || compressedCreatureJSON.objectReferenceValue| flatCreatureData.objectReferenceValue)
+		{
 			FillAnimationNames();
 
 			int i = 1;

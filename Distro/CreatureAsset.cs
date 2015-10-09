@@ -103,7 +103,7 @@ public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IS
 
 public class CreatureAsset : MonoBehaviour
 {
-	public TextAsset creatureJSON, compressedCreatureJSON;
+	public TextAsset creatureJSON, compressedCreatureJSON, flatCreatureData;
 	public CreatureManager creature_manager;
 	private bool is_dirty;
 
@@ -112,6 +112,9 @@ public class CreatureAsset : MonoBehaviour
 
 	[SerializeField]
 	public bool useCompressedAsset = false;
+
+	[SerializeField]
+	public bool useFlatDataAsset = false;
 
 #if UNITY_EDITOR
 	[MenuItem("GameObject/Creature/CreatureAsset")]
@@ -163,7 +166,11 @@ public class CreatureAsset : MonoBehaviour
 
 	public bool HasNoValidAsset()
 	{
-		return (!useCompressedAsset && creatureJSON == null) || (useCompressedAsset && compressedCreatureJSON == null);
+		bool regularCheck = !useCompressedAsset && !useFlatDataAsset && (creatureJSON == null);
+		bool compressedCheck = useCompressedAsset && (creatureJSON == null);
+		bool flatCheck = useFlatDataAsset && (flatCreatureData == null);
+
+		return regularCheck || compressedCheck || flatCheck;
 	}
 
 	public string GetAssetString()
@@ -183,6 +190,23 @@ public class CreatureAsset : MonoBehaviour
 		return readString;
 	}
 
+	public Dictionary<string, object> LoadCreatureJsonData()
+	{
+		Dictionary<string, object> load_data = null;
+
+		if(useFlatDataAsset)
+		{
+			byte[] readBytes = flatCreatureData.bytes;
+			load_data = CreatureModule.Utils.LoadCreatureFlatDataFromBytes(readBytes);
+		}
+		else {
+			string readString = GetAssetString ();
+			load_data = CreatureModule.Utils.LoadCreatureJSONDataFromString (readString);
+		}
+
+		return load_data;
+	}
+
 	public CreatureManager GetCreatureManager()
 	{
 		if (HasNoValidAsset())
@@ -197,10 +221,7 @@ public class CreatureAsset : MonoBehaviour
 			return creature_manager;
 		}
 			
-		Dictionary<string, object> load_data;
-		string readString = GetAssetString ();
-
-		load_data = CreatureModule.Utils.LoadCreatureJSONDataFromString (readString);
+		Dictionary<string, object> load_data = LoadCreatureJsonData ();
 
 		CreatureModule.Creature new_creature = new CreatureModule.Creature(ref load_data);
 		creature_manager = new CreatureModule.CreatureManager (new_creature);

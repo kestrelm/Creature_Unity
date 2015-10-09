@@ -68,7 +68,12 @@ namespace CreatureModule
 			return ret_dict;
 		}
 
-		public static List<string> GetAllAnimationNames(Dictionary<string, object> json_data)
+		public static Dictionary<string, object> LoadCreatureFlatDataFromBytes(byte[] flat_bytes)
+		{
+			return CreatureFlatDataReader.Utils.LoadCreatureFlatDataFromBytes (flat_bytes);
+		}
+			
+			public static List<string> GetAllAnimationNames(Dictionary<string, object> json_data)
 		{
 			Dictionary<string, object> json_animations = (Dictionary<string, object>)json_data["animation"];
 			List<string> keyList = new List<string>(json_animations.Keys);
