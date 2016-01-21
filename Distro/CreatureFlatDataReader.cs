@@ -15,6 +15,8 @@ namespace CreatureFlatDataReader {
 			var meshObj = rootObj.DataMesh;
 			var skeletonObj = rootObj.DataSkeleton;
 			var animationObject = rootObj.DataAnimation;
+			var uvSwapItemsObject = rootObj.DataUvSwapItem;
+			var anchorPointsObject = rootObj.DataAnchorPoints;
 
 			// ------- Process Mesh --------------------------
 			Dictionary<string, object> mesh_dict = new Dictionary<string, object> ();
@@ -258,6 +260,68 @@ namespace CreatureFlatDataReader {
 			}
 
 			ret_dict ["animation"] = animation_dict;
+
+			// uv item swaps
+			Dictionary<string, object> uvItemSwapsDict = new Dictionary<string, object>();
+			for(int j = 0; j < uvSwapItemsObject.MeshesLength; j++) {
+				var curSwapMesh = uvSwapItemsObject.GetMeshes(j);
+				object[] node_list = new object[curSwapMesh.ItemsLength];
+				var mesh_name = curSwapMesh.Name;
+
+				for(int k = 0; k < curSwapMesh.ItemsLength; k++) {
+					var curItem = curSwapMesh.GetItems(k);
+					Dictionary<string, object> packet_dict = new Dictionary<string, object>();
+
+					Object [] write_localOffset = new Object[curItem.LocalOffsetLength];
+					for(int m = 0; m < write_localOffset.Length; m++) {
+						write_localOffset[m] = curItem.GetLocalOffset(m);
+					}
+					packet_dict["local_offset"] = write_localOffset;
+
+					Object [] write_globalOffset = new Object[curItem.GlobalOffsetLength];
+					for(int m = 0; m < write_globalOffset.Length; m++) {
+						write_globalOffset[m] = curItem.GetGlobalOffset(m);
+					}
+					packet_dict["global_offset"] = write_globalOffset;
+
+					Object [] write_scale = new Object[curItem.ScaleLength];
+					for(int m = 0; m < write_scale.Length; m++) {
+						write_scale[m] = curItem.GetScale(m);
+					}
+					packet_dict["scale"] = write_scale;
+
+					packet_dict["tag"] = curItem.Tag;
+
+					node_list[k] = packet_dict;
+				}
+
+				uvItemSwapsDict[mesh_name] = node_list;
+			}
+
+			ret_dict["uv_swap_items"] = uvItemSwapsDict;
+
+			// anchor points
+			Dictionary<string, object> anchorPointsBaseDict = new Dictionary<string, object>();
+
+			Object[] anchorPointsList = new Object[anchorPointsObject.AnchorPointsLength];
+			for(int j = 0; j < anchorPointsObject.AnchorPointsLength; j++)
+			{
+				var curItem = anchorPointsObject.GetAnchorPoints(j);
+
+				Dictionary<string, object> anchor_dict = new Dictionary<string, object>();
+				Object [] write_cur_point = new Object[curItem.PointLength];
+				for(int m = 0; m < write_cur_point.Length; m++) {
+					write_cur_point[m] = curItem.GetPoint(m);
+				}
+
+				anchor_dict["point"] = write_cur_point;
+				anchor_dict["anim_clip_name"] = curItem.AnimClipName;
+
+				anchorPointsList[j] = anchor_dict;
+			}
+
+			anchorPointsBaseDict["AnchorPoints"] = anchorPointsList;
+			ret_dict["anchor_points_items"] = anchorPointsBaseDict;
 
 			return ret_dict;
 		}

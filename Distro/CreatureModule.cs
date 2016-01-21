@@ -514,9 +514,88 @@ namespace CreatureModule
 			cache_manager.makeAllReady();
 		}
 
+		public static Dictionary<String, List<CreatureUVSwapPacket> >
+		FillSwapUvPacketMap(Dictionary<string, object> json_obj, string key)
+		{
+			Dictionary<String, List<CreatureUVSwapPacket> >ret_map = new Dictionary<String, List<CreatureUVSwapPacket> >();
+
+			if(json_obj.ContainsKey(key) == false)
+			{
+				return ret_map;
+			}
+
+			Dictionary<string, object> base_obj = (Dictionary<string, object>)json_obj[key];
+
+			foreach(var cur_node in base_obj)
+			{
+				var cur_name = cur_node.Key;
+				List<CreatureUVSwapPacket> cur_packets = new List<CreatureUVSwapPacket>();
+
+				object[] node_list = (object[])cur_node.Value;
+
+				foreach(var packet_node in node_list)
+				{
+					Dictionary<string, object> packet_dict = (Dictionary<string, object>)packet_node;
+					var local_offset = ReadVector2JSON(packet_dict, "local_offset");
+					var global_offset = ReadVector2JSON(packet_dict, "global_offset");
+					var scale = ReadVector2JSON(packet_dict, "scale");
+					int tag = Convert.ToInt32(packet_dict["tag"]);
+
+					var new_packet = new CreatureUVSwapPacket(local_offset, global_offset, scale, tag);
+					cur_packets.Add(new_packet);
+				}
+
+				ret_map[cur_name] = cur_packets;
+			}
+
+			return ret_map;
+		}
+
+		public static Dictionary<String, XnaGeometry.Vector2>
+		FillAnchorPointMap(Dictionary<string, object> json_obj, string key)
+		{
+			Dictionary<String, XnaGeometry.Vector2> ret_map = new Dictionary<String, XnaGeometry.Vector2>();
+			if(json_obj.ContainsKey(key) == false)
+			{
+				return ret_map;
+			}
+
+			Dictionary<string, object> base_obj = (Dictionary<string, object>)json_obj[key];
+			object[] anchor_obj = (object[] )base_obj["AnchorPoints"];
+
+			foreach(var cur_node in anchor_obj)
+			{
+				Dictionary<string, object> anchor_dict = (Dictionary<string, object>)cur_node;
+				var cur_pt = ReadVector2JSON(anchor_dict, "point");
+				var cur_name = (String)anchor_dict["anim_clip_name"];
+
+				ret_map[cur_name] = cur_pt;
+			}
+
+			return ret_map;
+		}
+
 	}
 
+		public class CreatureUVSwapPacket {
+			public XnaGeometry.Vector2 local_offset;
+			public XnaGeometry.Vector2 global_offset;
+			public XnaGeometry.Vector2 scale;
+			public int tag;
 
+			public CreatureUVSwapPacket(XnaGeometry.Vector2 local_offset_in,
+						XnaGeometry.Vector2 global_offset_in,
+						XnaGeometry.Vector2 scale_in,
+						int tag_in)
+			{
+				local_offset = local_offset_in;
+				global_offset = global_offset_in;
+				scale = scale_in;
+				tag = tag_in;
+			}
+
+
+		};
 
 	// Class for the creature character
 	public class Creature {
@@ -527,6 +606,10 @@ namespace CreatureModule
 		public List<byte> render_colours;
 		public int total_num_pts, total_num_indices;
 		public MeshRenderBoneComposition render_composition;
+		public Dictionary<String, List<CreatureUVSwapPacket>> uv_swap_packets;
+		public Dictionary<String, int> active_uv_swap_actions;
+		public Dictionary<String, XnaGeometry.Vector2> anchor_point_map;
+		public bool anchor_points_active;
 		
 		public Creature(ref Dictionary<string, object> load_data)
 		{
@@ -538,6 +621,10 @@ namespace CreatureModule
 			render_pts = null;
 			render_colours = null;
 			render_composition = null;
+			uv_swap_packets = new Dictionary<String, List<CreatureUVSwapPacket>>();
+			active_uv_swap_actions = new Dictionary<String, int>();
+			anchor_point_map = new Dictionary<String, XnaGeometry.Vector2>();
+			anchor_points_active = false;
 
 			LoadFromData(ref load_data);
 		}
@@ -607,6 +694,32 @@ namespace CreatureModule
 			}
 			
 			render_composition.resetToWorldRestPts();
+
+			// Fill up uv swap packets
+			uv_swap_packets = Utils.FillSwapUvPacketMap(load_data, "uv_swap_items");
+
+			// Load Anchor Points
+			anchor_point_map = Utils.FillAnchorPointMap(load_data, "anchor_points_items");
+		}
+
+		public void SetActiveItemSwap(String region_name, int swap_idx)
+		{
+			active_uv_swap_actions[region_name] = swap_idx;
+		}
+
+		public void RemoveActiveItemSwap(String region_name)
+		{
+			active_uv_swap_actions.Remove(region_name);
+		}
+
+		public XnaGeometry.Vector2 GetAnchorPoint(String anim_clip_name_in)
+		{
+			if(anchor_point_map.ContainsKey(anim_clip_name_in))
+			{
+				return anchor_point_map[anim_clip_name_in];
+			}
+
+			return new XnaGeometry.Vector2(0,0);
 		}
 	}
 
@@ -1072,6 +1185,8 @@ namespace CreatureModule
 					PoseCreature(active_animation_name, target_creature.render_pts, getRunTime());
 				}
 			}
+
+			RunUVItemSwap();
 		}
 		
 		// Sets scaling for time
@@ -1385,10 +1500,74 @@ namespace CreatureModule
 
 			bone_cache_manager.retrieveValuesAtTime(input_run_time,
 			                                        ref bones_map);
+
+			AlterBonesByAnchor(bones_map, animation_name_in);    
 			
 			if(bones_override_callback != null) 
 			{
 				bones_override_callback(bones_map);
+			}
+		}
+
+		public void RunUVItemSwap()
+		{
+			MeshBoneUtil.MeshRenderBoneComposition render_composition =
+				target_creature.render_composition;			
+			Dictionary<string, MeshBoneUtil.MeshRenderRegion> regions_map =
+				render_composition.getRegionsMap();
+
+			var swap_packets = target_creature.uv_swap_packets;
+			var active_swap_actions = target_creature.active_uv_swap_actions;
+
+			if((swap_packets.Count == 0) || (active_swap_actions.Count == 0))
+			{
+				return;
+			}
+
+			foreach(var cur_action in active_swap_actions)
+			{
+				if(regions_map.ContainsKey(cur_action.Key))
+				{
+					var swap_tag = cur_action.Value;
+					var swap_list = swap_packets[cur_action.Key];
+					foreach(var cur_item in swap_list)
+					{
+						if(cur_item.tag == swap_tag)
+						{
+							// Perform UV Item Swap
+							var cur_region = regions_map[cur_action.Key];
+							cur_region.setUvWarpLocalOffset(cur_item.local_offset);
+							cur_region.setUvWarpGlobalOffset(cur_item.global_offset);
+							cur_region.setUvWarpScale(cur_item.scale);
+							cur_region.runUvWarp();
+
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		public void AlterBonesByAnchor(Dictionary<string, MeshBoneUtil.MeshBone> bones_map, String animation_name_in)
+		{
+			if(target_creature.anchor_points_active == false)
+			{
+				return;
+			}
+
+			var anchor_point = target_creature.GetAnchorPoint(animation_name_in);
+			var anchor_vector =  new XnaGeometry.Vector4(anchor_point.X, anchor_point.Y, 0, 0);
+			foreach(var cur_data in bones_map)
+			{
+				var cur_bone = cur_data.Value;
+				var start_pt = cur_bone.getWorldStartPt();
+				var end_pt = cur_bone.getWorldEndPt();
+
+				start_pt -= anchor_vector;
+				end_pt -= anchor_vector;
+
+				cur_bone.setWorldStartPt(start_pt);
+				cur_bone.setWorldEndPt(end_pt);
 			}
 		}
 		
@@ -1414,6 +1593,8 @@ namespace CreatureModule
 			
 			bone_cache_manager.retrieveValuesAtTime(input_run_time,
 			                                        ref bones_map);
+
+			AlterBonesByAnchor(bones_map, animation_name_in);                               
 
 			if(bones_override_callback != null) 
 			{
