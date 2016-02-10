@@ -1095,7 +1095,7 @@ namespace CreatureModule
 		public void correctTime()
 		{
 			CreatureAnimation cur_animation = animations[active_animation_name];
-			if(run_time > cur_animation.end_time)
+			if((run_time > cur_animation.end_time) && should_loop)
 			{
 				run_time = cur_animation.start_time;
 			}
