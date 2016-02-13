@@ -654,9 +654,6 @@ namespace CreatureModule
 			total_num_indices = global_indices.Count;
 
 			global_uvs = Utils.ReadFloatArrayJSON (json_mesh, "uvs");
-			for (int i = 0; i < global_uvs.Count; i+=2) {
-				global_uvs[i + 1] = global_uvs[i + 1];
-			}
 
 			render_colours = new List<byte>(new byte[total_num_pts * 4]);
 			FillRenderColours(255, 255, 255, 255);
