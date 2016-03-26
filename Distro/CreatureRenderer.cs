@@ -50,6 +50,8 @@ public class CreatureRenderer : MonoBehaviour
 	private MeshFilter meshFilter;
 	private Mesh active_mesh, mesh1, mesh2;
 	private Vector3[] vertices;
+	private Vector3[] normals;
+	private Vector4[] tangents;
 	private Color32[] colors;
 	private Vector2[] uvs;
 	private int[] triangles;
@@ -100,6 +102,7 @@ public class CreatureRenderer : MonoBehaviour
 		mesh1 = createMesh ();
 		mesh2 = createMesh ();
 		vertices = null;
+		normals = null;
 		colors = null;
 		uvs = null;
 		swap_mesh = false;
@@ -221,6 +224,8 @@ public class CreatureRenderer : MonoBehaviour
 	public void CreateRenderingData()
 	{
 		vertices = new Vector3[creature_manager.target_creature.total_num_pts];
+		normals = new Vector3[creature_manager.target_creature.total_num_pts];
+		tangents = new Vector4[creature_manager.target_creature.total_num_pts];
 		colors = new Color32[creature_manager.target_creature.total_num_pts];
 		uvs = new Vector2[creature_manager.target_creature.total_num_pts];
 		triangles = new int[creature_manager.target_creature.total_num_indices];
@@ -241,6 +246,14 @@ public class CreatureRenderer : MonoBehaviour
 			vertices[i].x = render_pts[pt_index + 0];
 			vertices[i].y = render_pts[pt_index + 1];
 			vertices[i].z = render_pts[pt_index + 2];
+
+			normals[i].x = 0;
+			normals[i].y = 0;
+			normals[i].z = 1.0f;
+
+			tangents[i].x = 1.0f;
+			tangents[i].y = 0;
+			tangents[i].z = 0;
 			
 			uvs[i].x = render_uvs[uv_index + 0];
 			uvs[i].y = 1.0f - render_uvs[uv_index + 1];
@@ -265,6 +278,8 @@ public class CreatureRenderer : MonoBehaviour
 		active_mesh.vertices = vertices;
 		active_mesh.colors32 = colors;
 		active_mesh.triangles = triangles;
+		active_mesh.normals = normals;
+		active_mesh.tangents = tangents;
 		active_mesh.uv = uvs;
 
 		//debugDrawBones (creature_manager.target_creature.render_composition.getRootBone ());
