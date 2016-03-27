@@ -18,6 +18,7 @@ public class CreatureRendererInspector : Editor
 	private SerializedProperty should_loop;
 	private SerializedProperty local_time_scale;
 	private SerializedProperty region_offsets_z;
+	private SerializedProperty counter_clockwise;
 	
 	void OnEnable () 
 	{
@@ -27,6 +28,7 @@ public class CreatureRendererInspector : Editor
 		should_loop = serializedObject.FindProperty("should_loop");
 		local_time_scale = serializedObject.FindProperty("local_time_scale");
 		region_offsets_z = serializedObject.FindProperty ("region_offsets_z");
+		counter_clockwise = serializedObject.FindProperty ("counter_clockwise");
 	}
 
 	void UpdateData()
@@ -37,6 +39,7 @@ public class CreatureRendererInspector : Editor
 		creature_renderer.should_loop = should_loop.boolValue;
 		creature_renderer.local_time_scale = local_time_scale.floatValue;
 		creature_renderer.region_offsets_z = region_offsets_z.floatValue;
+		creature_renderer.counter_clockwise = counter_clockwise.boolValue;
 		creature_renderer.InitData();
 		creature_renderer.CreateRenderingData();
 	}
@@ -73,6 +76,7 @@ public class CreatureRendererInspector : Editor
 		EditorGUILayout.PropertyField (creature_asset);
 		EditorGUILayout.PropertyField (local_time_scale);
 		EditorGUILayout.PropertyField (region_offsets_z);
+		EditorGUILayout.PropertyField (counter_clockwise);
 
 		bool did_change = EditorGUI.EndChangeCheck();
 

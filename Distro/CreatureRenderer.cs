@@ -67,6 +67,7 @@ public class CreatureRenderer : MonoBehaviour
 	public float blend_rate = 0.1f;
 	public float region_offsets_z = 0.01f;
 	public bool should_loop;
+	public bool counter_clockwise = false;
 
 	private Mesh createMesh () {
 		Mesh new_mesh = new Mesh();
@@ -240,6 +241,11 @@ public class CreatureRenderer : MonoBehaviour
 		List<float> render_pts = creature_manager.target_creature.render_pts;
 		List<float> render_uvs = creature_manager.target_creature.global_uvs;
 		List<byte> render_colors = creature_manager.target_creature.render_colours;
+		float normal_z = 1.0f;
+		if(counter_clockwise)
+		{
+			normal_z = -1.0f;
+		}
 
 		for(int i = 0; i < creature_manager.target_creature.total_num_pts; i++)
 		{
@@ -249,7 +255,7 @@ public class CreatureRenderer : MonoBehaviour
 
 			normals[i].x = 0;
 			normals[i].y = 0;
-			normals[i].z = 1.0f;
+			normals[i].z = normal_z;
 
 			tangents[i].x = 1.0f;
 			tangents[i].y = 0;
@@ -269,12 +275,23 @@ public class CreatureRenderer : MonoBehaviour
 		}
 		
 		List<int> render_indices = creature_manager.target_creature.global_indices;
-		
-		for(int i = 0; i < creature_manager.target_creature.total_num_indices; i++)
+
+		if(!counter_clockwise)
 		{
-			triangles[i] = render_indices[i];
+			for(int i = 0; i < creature_manager.target_creature.total_num_indices; i++)
+			{
+				triangles[i] = render_indices[i];
+			}
 		}
-		
+		else {
+			for(int i = 0; i < creature_manager.target_creature.total_num_indices; i+=3)
+			{
+				triangles[i] = render_indices[i];
+				triangles[i + 1] = render_indices[i + 2];
+				triangles[i + 2] = render_indices[i + 1];
+			}
+		}
+
 		active_mesh.vertices = vertices;
 		active_mesh.colors32 = colors;
 		active_mesh.triangles = triangles;
