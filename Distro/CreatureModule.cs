@@ -38,7 +38,7 @@ using System.IO;
 using System.Collections.Generic;
 using MeshBoneUtil;
 using XnaGeometry;
-using Pathfinding.Serialization.JsonFx;
+using JsonFx;
 
 namespace CreatureModule
 {
@@ -51,7 +51,7 @@ namespace CreatureModule
 			//var raw_obj = new System.Text.Json.JsonParser().Parse(text);
 
 			Dictionary<string, object> ret_dict = null;
-			ret_dict = JsonReader.Deserialize(text, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+			ret_dict = JsonFx.Json.JsonReader.Deserialize(text, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
 			//ret_dict = (Dictionary<string, object>)raw_obj;
 
 			return ret_dict;
@@ -62,7 +62,7 @@ namespace CreatureModule
 			//var raw_obj = new System.Text.Json.JsonParser().Parse(text_in);
 
 			Dictionary<string, object> ret_dict = null;
-			ret_dict = JsonReader.Deserialize(text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+			ret_dict = JsonFx.Json.JsonReader.Deserialize(text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
 			//ret_dict = (Dictionary<string, object>)raw_obj;
 
 			return ret_dict;
@@ -83,6 +83,14 @@ namespace CreatureModule
 
 		public static float[] getFloatArray(System.Object raw_data)
 		{
+			if(raw_data.GetType() == typeof(double[]))
+			{
+				double[] float_obj = (double[])raw_data;
+				float[] float_array = Array.ConvertAll (float_obj, item => (float)Convert.ToSingle(item));
+
+				return float_array;
+			}
+
 			System.Object[] cur_obj = (System.Object[])raw_data;
 
 			float[] ret_array = Array.ConvertAll (cur_obj, item => (float)Convert.ToSingle(item));
@@ -103,6 +111,24 @@ namespace CreatureModule
 		public static List<XnaGeometry.Vector2> ReadPointsArray2DJSON(Dictionary<string, object> data,
 		                                               string key)
 		{
+			if(data[key].GetType() == typeof(double[]))
+			{
+				double[] double_obj = (double[])data[key];
+
+				List<XnaGeometry.Vector2> ret_double_list = new List<XnaGeometry.Vector2>(double_obj.Length);
+				int num_dbl_points = double_obj.Length / 2;
+				for (int i = 0; i < num_dbl_points; i++) 
+				{
+					int cur_index = i * 2;
+					ret_double_list.Add(
+								new XnaGeometry.Vector2(Convert.ToDouble(double_obj[0 + cur_index]),
+														Convert.ToDouble(double_obj[1 + cur_index])) );
+
+				}
+				
+				return ret_double_list;
+			}
+
 			System.Object[] cur_obj = (System.Object[])data[key];
 
 			List<XnaGeometry.Vector2> ret_list = new List<XnaGeometry.Vector2>(cur_obj.Length);
@@ -122,6 +148,24 @@ namespace CreatureModule
 		public static List<float> ReadFloatArray3DJSON(Dictionary<string, object> data,
 		                                             string key)
 		{
+			if(data[key].GetType() == typeof(double[]))
+			{
+				double[] cur_double_obj = (double[])data[key];
+
+				List<float> ret_double_list = new List<float>(cur_double_obj.Length);
+				int num_double_points = cur_double_obj.Length / 2;
+
+				for (int i = 0; i < num_double_points; i++) 
+				{
+					int cur_index = i * 2;
+					ret_double_list.Add((float)Convert.ToSingle(cur_double_obj[0 + cur_index]));
+					ret_double_list.Add((float)Convert.ToSingle(cur_double_obj[1 + cur_index]));
+					ret_double_list.Add(0);
+				}
+				
+				return ret_double_list;
+			}
+
 			System.Object[] cur_obj = (System.Object[])data[key];
 
 			List<float> ret_list = new List<float>(cur_obj.Length);
@@ -148,6 +192,17 @@ namespace CreatureModule
 		public static List<float> ReadFloatArrayJSON(Dictionary<string, object> data,
 		                                      string key)
 		{
+			if(data[key].GetType() == typeof(double[]))
+			{
+				double[] cur_double_obj = (double[])data[key];
+				List<float> ret_double_list = new List<float>(cur_double_obj.Length);
+				for (int i = 0; i < cur_double_obj.Length; i++) {
+					ret_double_list.Add(Convert.ToSingle (cur_double_obj[i]));
+				}
+				
+				return ret_double_list;
+			}
+
 			System.Object[] cur_obj = (System.Object[])data[key];
 			List<float> ret_list = new List<float>(cur_obj.Length);
 			for (int i = 0; i < cur_obj.Length; i++) {
@@ -160,13 +215,28 @@ namespace CreatureModule
 		public static List<int> ReadIntArrayJSON(Dictionary<string, object> data,
 		                                    string key)
 		{
-			System.Object[] cur_obj = (System.Object[])data[key];
-			List<int> ret_list = new List<int>(cur_obj.Length);
-			for (int i = 0; i < cur_obj.Length; i++) {
-				ret_list.Add(Convert.ToInt32(cur_obj[i]));
+			if(data[key].GetType() == typeof(int[]))
+			{
+				int[] cur_int_data = (int[])data[key];
+				List<int> ret_int_list = new List<int>(cur_int_data.Length);
+				for (int i = 0; i < cur_int_data.Length; i++) {
+					ret_int_list.Add(Convert.ToInt32(cur_int_data[i]));
+				}
+
+				return ret_int_list;
 			}
-			
-			return ret_list;
+			else if(data[key].GetType() == typeof(System.Object[]))
+			{
+				System.Object[] cur_obj = (System.Object[])data[key];
+				List<int> ret_list = new List<int>(cur_obj.Length);
+				for (int i = 0; i < cur_obj.Length; i++) {
+					ret_list.Add(Convert.ToInt32(cur_obj[i]));
+				}
+				
+				return ret_list;
+			}
+
+			return new List<int>(0);
 		}
 
 		public static XnaGeometry.Matrix ReadMatrixJSON(Dictionary<string, object> data,
