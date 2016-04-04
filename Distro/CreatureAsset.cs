@@ -153,15 +153,23 @@ public class CreatureAsset : MonoBehaviour
 
 	public void SaveCompressedText(string filename, string text_in)
 	{
+	/*
 		byte[] text1 =   System.Text.Encoding.ASCII.GetBytes(text_in);
 		byte[] compressed = LZMAtools.CompressByteArrayToLZMAByteArray(text1);
 		File.WriteAllBytes (filename, compressed);
+	*/
+		Debug.LogWarning("This function is deprecated. Please use FlatBuffers Binary Format instead.");
 	}
 
 	public string DecodeCompressedBytes(byte[] bytes)
 	{
+	/*
 		byte[] decompressed = LZMAtools.DecompressLZMAByteArrayToByteArray (bytes);
 		return System.Text.Encoding.Default.GetString(decompressed);
+	*/
+
+		Debug.LogWarning("This function is deprecated. Please use FlatBuffers Binary Format instead.");
+		return null;
 	}
 
 	public bool HasNoValidAsset()
