@@ -324,33 +324,11 @@ public class CreatureRenderer : MonoBehaviour
 
 
 		float time_delta = (Time.deltaTime * local_time_scale);
-		local_time += time_delta;
-		float local_start_time = creature_manager.animations[active_animation_name].start_time;
-		float local_end_time = creature_manager.animations[active_animation_name].end_time;
-
-		if (use_custom_time_range) {
-			local_start_time = custom_start_time;
-			local_end_time = custom_end_time;
-		}
-
-		if(should_loop)
-		{
-			if(local_time > local_end_time)
-			{
-				local_time = local_start_time;
-			}
-		}
-		else 
-		{
-			if(local_time > local_end_time)
-			{
-				local_time = local_end_time;
-			}
-		}
 
 		creature_manager.region_offsets_z = region_offsets_z;
 		creature_manager.should_loop = should_loop;
-		creature_manager.Update (time_delta);
+		creature_manager.Update(time_delta);
+		local_time = creature_manager.getRunTime();
 	}
 
 	public virtual void LateUpdate () 
