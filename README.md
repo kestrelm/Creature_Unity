@@ -28,7 +28,7 @@ Video of the Demo is [here.](https://youtu.be/XkJa1VzWrc8)
 Download the full Unity source + assets of the demo [here.](https://github.com/kestrelm/CreatureDemos/tree/master/CreatureUI)
 
 ####Artwork Credits
-Reaper: Katarzyna Zalecka. CC-BY-SA 3.0
+Reaper: Katarzyna Zalecka. CC-BY-SA 3.0, [Ancient Beast](https://github.com/FreezingMoon/AncientBeast)
 
 Background: David Revoy, CC BY 3.0
 
