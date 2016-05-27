@@ -17,7 +17,24 @@ If you are having issues with deploying for platforms like iOS ( **UnusedBytecod
 
 This should remove any sort of DLL dependency on your project.
 
-## Kraken Demo
+## Creature Unity Game UI Demo
+
+This is a demonstration of multiple Creature Animated characters playing in a reconstructed Game Starting Menu UI scene. The Reaper character and even the buttons are all authored and animated from within Creature.
+
+[![Non](https://raw.githubusercontent.com/kestrelm/Creature_Unity/master/ui-screen.png)](https://youtu.be/XkJa1VzWrc8)
+
+Video of the Demo is [here.](https://youtu.be/XkJa1VzWrc8)
+
+Download the full Unity source + assets of the demo [here.](https://github.com/kestrelm/CreatureDemos/tree/master/CreatureUI)
+
+####Artwork Credits
+Reaper: Katarzyna Zalecka. CC-BY-SA 3.0
+
+Background: David Revoy, CC BY 3.0
+
+Buttton Frame: Ironthunder, CC-BY 3.0
+
+## Creature Unity Kraken Demo
 
 [![Non](http://www.kestrelmoon.com/creature/img/kraken.png)](http://youtu.be/Ca6lRx0_fF8)
 
