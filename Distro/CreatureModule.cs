@@ -42,6 +42,136 @@ using JsonFx;
 
 namespace CreatureModule
 {
+	// Meta Data
+	public class CreatureMetaData {
+		public Dictionary<int, Tuple<int, int>> mesh_map;
+		public Dictionary<String, Dictionary<int, List<int> >> anim_order_map;
+
+		public CreatureMetaData()
+		{
+			mesh_map = new Dictionary<int, Tuple<int, int>>();
+			anim_order_map = new Dictionary<String, Dictionary<int, List<int> >>();
+		}
+
+		public void clear()
+		{
+			mesh_map.Clear();
+			anim_order_map.Clear();
+		}
+
+		public void updateIndicesAndPoints(
+			List<int> dst_indices,
+			List<int> src_indices,
+			List<float> dst_pts,
+			float delta_z,
+			int num_indices,
+			int num_pts,
+			String anim_name,
+			int time_in)
+		{
+			bool has_data = false;
+			var cur_order = sampleOrder(anim_name, time_in);
+			if(cur_order != null)
+			{
+				has_data = (cur_order.Count > 0);
+			}
+
+			if(has_data)
+			{
+				float cur_z = 0;
+				// Copy new ordering to destination
+				List<int> write_ptr = dst_indices;
+				int total_num_write_indices = 0;
+				foreach(var region_id in cur_order)
+				{
+					if(mesh_map.ContainsKey(region_id) == false)
+					{
+						// region not found, just copy and return
+						for(int i = 0; i < dst_indices.Count; i++)
+						{
+							dst_indices[i] = src_indices[i];
+						}
+						return;
+					}
+
+					// Write indices
+					var mesh_data = mesh_map[region_id];
+					int num_write_indices = mesh_data.Item2 - mesh_data.Item1 + 1;
+					var region_src_ptr = src_indices;
+
+					if((total_num_write_indices + num_write_indices) > num_indices)
+					{
+						// overwriting boundaries of array, regions do not match so copy and return
+						for(int i = 0; i < dst_indices.Count; i++)
+						{
+							dst_indices[i] = src_indices[i];
+						}
+						return;
+					}
+
+					for(int i = 0; i < num_write_indices; i++)
+					{
+						write_ptr[total_num_write_indices + i] = region_src_ptr[mesh_data.Item1 + i];
+					}
+
+					total_num_write_indices += num_write_indices;
+
+					// Write points
+					int start_idx = mesh_data.Item1;
+					int end_idx = mesh_data.Item2;
+
+					if(src_indices[end_idx] < num_pts)
+					{
+						for(int i = start_idx; i <= end_idx; i++)
+						{
+							int cur_pt_idx = src_indices[i] * 3;
+							dst_pts[cur_pt_idx + 2] = cur_z;
+						}
+					}
+
+					cur_z += delta_z;
+				}
+			}
+			else {
+				// Nothing changed, just copy from source
+				for(int i = 0; i < dst_indices.Count; i++)
+				{
+					dst_indices[i] = src_indices[i];
+				}
+			}
+		}
+
+		public List<int> sampleOrder(String anim_name, int time_in)
+		{
+			if(anim_order_map.ContainsKey(anim_name))
+			{
+				var order_table = anim_order_map[anim_name];
+				if(order_table.Count == 0)
+				{
+					return null;
+				}
+
+				var keys_sorted = new List<int>(order_table.Keys);
+    			keys_sorted.Sort();
+
+				int sample_time = keys_sorted[0];
+
+				foreach(var curKey in keys_sorted)
+				{
+					if(time_in >= curKey)
+					{
+						sample_time = curKey;
+					}
+				}
+
+				return order_table[sample_time];
+			}
+
+			return null;
+		}
+
+	}
+
 	// Utils
 	class Utils
 	{
@@ -79,6 +209,48 @@ namespace CreatureModule
 			List<string> keyList = new List<string>(json_animations.Keys);
 
 			return keyList;
+		}
+
+		public static void BuildCreatureMetaData(CreatureMetaData meta_data, string json_text_in)
+		{
+			meta_data.clear();
+			var json_dict = JsonFx.Json.JsonReader.Deserialize(json_text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
+
+			if(json_dict.ContainsKey("meshes"))
+			{
+				var all_meshes = (Dictionary<string, object>)json_dict["meshes"];
+				foreach(var cur_data in all_meshes)
+				{
+					var cur_obj = (Dictionary<string, object>)cur_data.Value;
+					int region_id = Convert.ToInt32(cur_obj["id"]);
+					int start_index = Convert.ToInt32(cur_obj["startIndex"]);
+					int end_index = Convert.ToInt32(cur_obj["endIndex"]);
+
+					meta_data.mesh_map[region_id] = new Tuple<int, int>(start_index, end_index);
+				}
+			}
+
+			if(json_dict.ContainsKey("regionOrders"))
+			{
+				var all_anim_data = (Dictionary<string, object>)json_dict["regionOrders"];
+				foreach(var cur_anim_data in all_anim_data)
+				{
+					var anim_name = cur_anim_data.Key;
+					var order_data = (System.Object[])cur_anim_data.Value;
+					Dictionary<int, List<int>> write_order_dict = new Dictionary<int, List<int>>();
+
+					foreach(var switch_data in order_data)
+					{
+						var switch_dict = (Dictionary<string, object>)switch_data;
+						int switch_time = Convert.ToInt32(switch_dict["switch_time"]);
+						List<int> switch_order = ReadIntArrayJSON(switch_dict, "switch_order");
+
+						write_order_dict[switch_time] = switch_order;
+					}
+
+					meta_data.anim_order_map[anim_name] = write_order_dict;
+				}
+			}
 		}
 
 		public static float[] getFloatArray(System.Object raw_data)

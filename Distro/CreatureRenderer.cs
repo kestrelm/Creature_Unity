@@ -55,6 +55,7 @@ public class CreatureRenderer : MonoBehaviour
 	private Color32[] colors;
 	private Vector2[] uvs;
 	private int[] triangles;
+	private List<int> final_indices;
 	private bool swap_mesh;
 	private float local_time;
 	private bool use_custom_time_range;
@@ -230,6 +231,7 @@ public class CreatureRenderer : MonoBehaviour
 		colors = new Color32[creature_manager.target_creature.total_num_pts];
 		uvs = new Vector2[creature_manager.target_creature.total_num_pts];
 		triangles = new int[creature_manager.target_creature.total_num_indices];
+		final_indices = new List<int>(new int[creature_manager.target_creature.total_num_indices]);
 	}
 	
 	public void UpdateRenderingData()
@@ -276,21 +278,45 @@ public class CreatureRenderer : MonoBehaviour
 		
 		List<int> render_indices = creature_manager.target_creature.global_indices;
 
+		// index re-ordering
+		if(creature_asset.creature_meta_data != null)
+		{
+			// do index re-ordering
+			creature_asset.creature_meta_data.updateIndicesAndPoints(
+				final_indices,
+				render_indices,
+				render_pts,
+				0,
+				creature_manager.target_creature.total_num_indices,
+				creature_manager.target_creature.total_num_pts,
+				creature_manager.active_animation_name,
+				(int)creature_manager.run_time);
+
+		}
+		else {
+			// plain copy
+			for(int i = 0; i < render_indices.Count; i++)
+			{
+				final_indices[i] = render_indices[i];
+			}
+		}
+
 		if(!counter_clockwise)
 		{
 			for(int i = 0; i < creature_manager.target_creature.total_num_indices; i++)
 			{
-				triangles[i] = render_indices[i];
+				triangles[i] = final_indices[i];
 			}
 		}
 		else {
 			for(int i = 0; i < creature_manager.target_creature.total_num_indices; i+=3)
 			{
-				triangles[i] = render_indices[i];
-				triangles[i + 1] = render_indices[i + 2];
-				triangles[i + 2] = render_indices[i + 1];
+				triangles[i] = final_indices[i];
+				triangles[i + 1] = final_indices[i + 2];
+				triangles[i + 2] = final_indices[i + 1];
 			}
 		}
+
 
 		active_mesh.vertices = vertices;
 		active_mesh.colors32 = colors;

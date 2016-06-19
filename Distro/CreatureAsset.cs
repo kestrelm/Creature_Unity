@@ -103,8 +103,9 @@ public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IS
 
 public class CreatureAsset : MonoBehaviour
 {
-	public TextAsset creatureJSON, compressedCreatureJSON, flatCreatureData;
-	public CreatureManager creature_manager;
+	public TextAsset creatureJSON, compressedCreatureJSON, flatCreatureData, creatureMetaJSON;
+	public CreatureManager creature_manager = null;
+	public CreatureMetaData creature_meta_data = null;
 	private bool is_dirty;
 
 	[SerializeField]
@@ -264,6 +265,14 @@ public class CreatureAsset : MonoBehaviour
 
 
 		is_dirty = true;
+
+		// Load meta data if available
+		creature_meta_data = null;
+		if(creatureMetaJSON != null)
+		{
+			creature_meta_data = new CreatureMetaData();
+		 	CreatureModule.Utils.BuildCreatureMetaData(creature_meta_data, creatureMetaJSON.text);
+		}
 
 		return creature_manager;
 	}

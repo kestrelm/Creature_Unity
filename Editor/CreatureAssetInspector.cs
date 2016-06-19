@@ -14,6 +14,7 @@ public class CreatureAssetInspector : Editor {
 	private SerializedProperty creatureJSON;
 	private SerializedProperty compressedCreatureJSON;
 	private SerializedProperty flatCreatureData;
+	private SerializedProperty creatureMetaJSON;
 	private List<string> animation_names;
 
 	[SerializeField]
@@ -32,6 +33,7 @@ public class CreatureAssetInspector : Editor {
 		creatureJSON = serializedObject.FindProperty("creatureJSON");
 		compressedCreatureJSON = serializedObject.FindProperty("compressedCreatureJSON");
 		flatCreatureData = serializedObject.FindProperty ("flatCreatureData");
+		creatureMetaJSON = serializedObject.FindProperty("creatureMetaJSON");
 	}
 
 	void UpdateData()
@@ -62,6 +64,14 @@ public class CreatureAssetInspector : Editor {
 				creature_asset.ResetState ();
 				creature_asset.flatCreatureData = flat_text_asset;
 				FillAnimationNames ();
+			} 
+		}
+
+		TextAsset meta_text_asset = (TextAsset)creatureMetaJSON.objectReferenceValue;
+		if (meta_text_asset) {
+			if (meta_text_asset.text.Length > 0) {
+				creature_asset.ResetState ();
+				creature_asset.creatureMetaJSON = meta_text_asset;
 			} 
 		}
 
@@ -105,6 +115,7 @@ public class CreatureAssetInspector : Editor {
 		EditorGUILayout.PropertyField (creatureJSON);
 		EditorGUILayout.PropertyField (compressedCreatureJSON);
 		EditorGUILayout.PropertyField (flatCreatureData);
+		EditorGUILayout.PropertyField (creatureMetaJSON);
 
 		bool did_change = EditorGUI.EndChangeCheck();
 
