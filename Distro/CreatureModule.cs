@@ -1484,7 +1484,7 @@ namespace CreatureModule
 			SetBlendingAnimations(auto_blend_names[0], auto_blend_names[1]);
 		}
 
-		public void ResetBendTime(string name_in)
+		public void ResetBlendTime(string name_in)
 		{
 			CreatureAnimation cur_animation = animations[name_in];
 			active_blend_run_times[name_in] = cur_animation.start_time;
@@ -1567,11 +1567,6 @@ namespace CreatureModule
 			}
 			
 			return ret_time;
-		}
-
-		private void ResetBlendTime(string name_in)
-		{
-
 		}
 		
 		// Sets blending animation names
