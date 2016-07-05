@@ -111,7 +111,10 @@ public class CreatureRendererInspector : Editor
 
 				should_loop.boolValue = EditorGUILayout.Toggle("Loop", should_loop.boolValue);
 
-				updateTargetAnimation();
+				if(!Application.isPlaying)
+				{
+					updateTargetAnimation();
+				}
 				serializedObject.ApplyModifiedProperties();
 			}
 		}
