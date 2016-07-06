@@ -17,6 +17,14 @@ If you are having issues with deploying for platforms like iOS ( **UnusedBytecod
 
 This should remove any sort of DLL dependency on your project.
 
+## Creature 2D Side-Scrolling Platformer Demo
+
+This is a simple 2D Side-Scrolling Demo authored in Creature and Unity. Characters are animated with the Creature 2D Animation Tool and brought to life in the Unity Game Engine using the Creature Unity Plugin.
+
+[![Non](https://raw.githubusercontent.com/kestrelm/Creature_Unity/master/unity_platformer.png)](https://youtu.be/4UXp4-L6YEE)
+
+Download the full Unity source + assets of the demo [here.](https://github.com/kestrelm/CreatureDemos/tree/master/CreaturePlatformer)
+
 ## Creature Unity Game UI Demo
 
 This is a demonstration of multiple Creature Animated characters playing in a reconstructed Game Starting Menu UI scene. The Reaper character and even the buttons are all authored and animated from within Creature.
