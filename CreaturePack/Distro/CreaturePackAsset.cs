@@ -67,8 +67,14 @@ public class CreaturePackAsset : MonoBehaviour {
             return packData;
         }
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
         Stream readStream = new MemoryStream(creaturePackBytes.bytes);
         packData = new CreaturePackLoader(readStream);
+
+        sw.Stop();
+        Debug.Log("Loading time for: " + name + " took: " + sw.ElapsedMilliseconds.ToString() + " ms");
+
         is_dirty = true;
 
         return packData;
