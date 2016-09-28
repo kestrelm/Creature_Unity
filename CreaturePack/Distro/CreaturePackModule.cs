@@ -246,9 +246,9 @@ namespace CreaturePackModule
         public float[] points;
         public Dictionary<string, CreaturePackAnimClip> animClipMap = new Dictionary<string, CreaturePackAnimClip>();
 
-        public List<object> fileData;
-        public List<object> headerList;
-        public List<object> animPairsOffsetList;
+        public object[] fileData;
+        public object[] headerList;
+        public object[] animPairsOffsetList;
         public List<Pair<uint, uint>> meshRegionsList;
 
         public CreaturePackLoader()
@@ -264,8 +264,8 @@ namespace CreaturePackModule
         
         public void updateIndices(int idx)
         {
-            var cur_data = (List <object >)fileData[idx];
-            for (var i = 0; i < cur_data.Count; i++)
+            var cur_data = (object[])fileData[idx];
+            for (var i = 0; i < cur_data.Length; i++)
             {
                 indices[i] = (uint)(long)(cur_data[i]);
             }
@@ -273,8 +273,8 @@ namespace CreaturePackModule
 
         public void updatePoints(int idx)
         {
-            var cur_data = (List<object>)fileData[idx];
-            for (var i = 0; i < cur_data.Count; i++)
+            var cur_data = (object[])fileData[idx];
+            for (var i = 0; i < cur_data.Length; i++)
             {
                 points[i] =  (float)(cur_data[i]);
             }
@@ -282,8 +282,8 @@ namespace CreaturePackModule
 
         public void updateUVs(int idx)
         {
-            var cur_data = (List<object>)fileData[idx];
-            for (var i = 0; i < cur_data.Count; i++)
+            var cur_data = (object[])fileData[idx];
+            for (var i = 0; i < cur_data.Length; i++)
             {
                 uvs[i] = (float)(cur_data[i]);
             }
@@ -292,7 +292,7 @@ namespace CreaturePackModule
         public int getAnimationNum()
         {
             int sum = 0;
-            for (int i = 0; i < headerList.Count; i++)
+            for (int i = 0; i < headerList.Length; i++)
             {
                 if ((string)headerList[i] == "animation")
                 {
@@ -337,29 +337,29 @@ namespace CreaturePackModule
 
         public int getNumIndices()
         {
-            var curData = (List<object>)fileData[getBaseIndicesOffset()];
-            return curData.Count;
+            var curData = (object[])fileData[getBaseIndicesOffset()];
+            return curData.Length;
         }
 
         public int getNumPoints()
         {
-            var curData = (List<object>)fileData[getBasePointsOffset()];
-            return curData.Count;
+            var curData = (object[])fileData[getBasePointsOffset()];
+            return curData.Length;
         }
 
         public int getNumUvs() 
         {
-            var curData = (List<object>)fileData[getBaseUvsOffset()];
-            return curData.Count;
+            var curData = (object[])fileData[getBaseUvsOffset()];
+            return curData.Length;
         }
 
         public void runDecoder(Stream byteStream)
         {
             var newReader = new MiniMessagePacker();
-            fileData = (List<object>)newReader.Unpack(byteStream);
+            fileData = (object[])newReader.Unpack(byteStream);
             
-            headerList = (List<object>)fileData[getBaseOffset()];
-            animPairsOffsetList = (List<object>)fileData[getAnimPairsListOffset()];
+            headerList = (object[])fileData[getBaseOffset()];
+            animPairsOffsetList = (object[])fileData[getAnimPairsListOffset()];
             
             // init basic points and topology structure
             indices = new uint[getNumIndices()]; 
@@ -636,9 +636,9 @@ namespace CreaturePackModule
                 var cur_clip_info = cur_clip.sampleTime(getRunTime());
                 CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                 CreatureTimeSample high_data = cur_clip.timeSamplesMap[cur_clip_info.secondSampleIdx];
-                
-                List<object> anim_low_points = (List <object>)data.fileData[low_data.getAnimPointsOffset()];
-                List<object> anim_high_points = (List<object>)data.fileData[high_data.getAnimPointsOffset()];
+
+                object[] anim_low_points = (object[])data.fileData[low_data.getAnimPointsOffset()];
+                object[] anim_high_points = (object[])data.fileData[high_data.getAnimPointsOffset()];
                 
                 for (var i = 0; i < renders_base_size; i++)
                 {
@@ -661,9 +661,9 @@ namespace CreaturePackModule
                 var active_clip_info = active_clip.sampleTime(getRunTime());
                 CreatureTimeSample active_low_data = active_clip.timeSamplesMap[active_clip_info.firstSampleIdx];
                 CreatureTimeSample active_high_data = active_clip.timeSamplesMap[active_clip_info.secondSampleIdx];
-                
-                List<object> active_anim_low_points = (List <object>)data.fileData[active_low_data.getAnimPointsOffset()];
-                List<object> active_anim_high_points = (List<object>)data.fileData[active_high_data.getAnimPointsOffset()];
+
+                object[] active_anim_low_points = (object[])data.fileData[active_low_data.getAnimPointsOffset()];
+                object[] active_anim_high_points = (object[])data.fileData[active_high_data.getAnimPointsOffset()];
                 
                 // Previous Clip
                 var prev_clip =  data.animClipMap[prevAnimationName];
@@ -672,8 +672,8 @@ namespace CreaturePackModule
                 CreatureTimeSample prev_low_data = prev_clip.timeSamplesMap[prev_clip_info.firstSampleIdx];
                 CreatureTimeSample prev_high_data = prev_clip.timeSamplesMap[prev_clip_info.secondSampleIdx];
 
-                List<object> prev_anim_low_points = (List <object>)data.fileData[prev_low_data.getAnimPointsOffset()];
-                List<object> prev_anim_high_points = (List<object>)data.fileData[prev_high_data.getAnimPointsOffset()];
+                object[] prev_anim_low_points = (object[])data.fileData[prev_low_data.getAnimPointsOffset()];
+                object[] prev_anim_high_points = (object[])data.fileData[prev_high_data.getAnimPointsOffset()];
 
                 for (var i = 0; i < renders_base_size; i++)
                 {
@@ -702,11 +702,11 @@ namespace CreaturePackModule
                 CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                 CreatureTimeSample high_data = cur_clip.timeSamplesMap[cur_clip_info.secondSampleIdx];
 
-                List<object> anim_low_colors = (List<object>)data.fileData[low_data.getAnimColorsOffset()];
-                List<object> anim_high_colors = (List<object>)data.fileData[high_data.getAnimColorsOffset()];
+                object[] anim_low_colors = (object[])data.fileData[low_data.getAnimColorsOffset()];
+                object[] anim_high_colors = (object[])data.fileData[high_data.getAnimColorsOffset()];
 
-                if ((anim_low_colors.Count == getRenderColorsLength())
-                    && (anim_high_colors.Count == getRenderColorsLength())) {
+                if ((anim_low_colors.Length == getRenderColorsLength())
+                    && (anim_high_colors.Length == getRenderColorsLength())) {
                     for (var i = 0; i < getRenderColorsLength(); i++)
                     {
                         float low_val = (float)(long)(anim_low_colors[i]);
@@ -723,9 +723,9 @@ namespace CreaturePackModule
                     var cur_clip =  data.animClipMap[activeAnimationName];
                     var cur_clip_info = cur_clip.sampleTime(getRunTime());
                     CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
-                    List<object> anim_uvs = (List<object>)data.fileData[low_data.getAnimUvsOffset()];
+                    object[] anim_uvs = (object[])data.fileData[low_data.getAnimUvsOffset()];
 
-                    if (anim_uvs.Count == getRenderUVsLength())
+                    if (anim_uvs.Length == getRenderUVsLength())
                     {
                         for (var i = 0; i < getRenderUVsLength(); i++)
                         {

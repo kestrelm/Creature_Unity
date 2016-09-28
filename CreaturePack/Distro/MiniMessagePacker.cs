@@ -463,10 +463,10 @@ namespace MiniMessagePack
 			return buf;
 		}
 
-		private List<object> UnpackArray(Stream s, long len) {
-			var list = new List<object> ((int)len);
+		private object[] UnpackArray(Stream s, long len) {
+			var list = new object[(int)len];
 			for (long i = 0; i < len; i++) {
-				list.Add (Unpack (s));
+				list[i] = (Unpack (s));
 			}
 			return list;
 		}
