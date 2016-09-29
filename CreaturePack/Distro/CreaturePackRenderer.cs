@@ -207,7 +207,7 @@ public class CreaturePackRenderer : MonoBehaviour {
         {
             for(int idx = (int)meshData.first; idx <= (int)meshData.second; idx++)
             {
-                var pt_idx = render_indices[idx] * 3;
+                var pt_idx = render_indices[idx];
                 vertices[pt_idx].z = cur_z;
                 vertices[pt_idx + 1].z = cur_z;
                 vertices[pt_idx + 2].z = cur_z;
