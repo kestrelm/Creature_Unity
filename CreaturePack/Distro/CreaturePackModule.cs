@@ -622,6 +622,11 @@ namespace CreaturePackModule
         // Smoothly blends to a target animation
         public void blendToAnimation(string nameIn, float blendDelta)
         {
+            if(nameIn == activeAnimationName)
+            {
+                return;
+            }
+
             if (runTimeMap.ContainsKey(nameIn)) {
                 prevAnimationName = activeAnimationName;
                 activeAnimationName = nameIn;
