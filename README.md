@@ -44,7 +44,7 @@ Buttton Frame: Ironthunder, CC-BY 3.0
 
 ## Hummingbirds! ( Creature Pack Demo )
 
-![Non](http://creature.kestrelmoon.com/WebDemo/hummerShort2.gif)
+![Non](https://raw.githubusercontent.com/kestrelm/Creature_Unity/master/hummerShort2.gif)
 
 Hummingbirds! is a demo done using the lighter weight **Creature Pack Plugin**. It showcases an entire scene ( flowers, birds ) all animated in Creature and played back in Unity using the plugin in real-time.
 
