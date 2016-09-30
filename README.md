@@ -42,23 +42,15 @@ Background: David Revoy, CC BY 3.0
 
 Buttton Frame: Ironthunder, CC-BY 3.0
 
-## Creature Unity Kraken Demo
+## Hummingbirds! ( Creature Pack Demo )
 
-[![Non](http://www.kestrelmoon.com/creature/img/kraken.png)](http://youtu.be/Ca6lRx0_fF8)
+![Non](http://creature.kestrelmoon.com/WebDemo/hummerShort2.gif)
 
-This is a demonstration of the Creature Runtimes in Unity. The Kraken and Orca characters are authored in Creature using Procedural Motors.
-Kraken character drives a full blown Grid-based Fluid Simulation in 
-the scene,  affecting 10000 fluid particles in realtime.
+Hummingbirds! is a demo done using the lighter weight **Creature Pack Plugin**. It showcases an entire scene ( flowers, birds ) all animated in Creature and played back in Unity using the plugin in real-time.
 
-The Kraken Demo Project is located in the directory **"Kraken Demo"**.
+**Creature Pack Plugin**: <https://github.com/kestrelm/Creature_Unity/tree/master/CreaturePack>
 
-Controls:
+**Live WebGL Demo**: <http://creature.kestrelmoon.com/WebDemo/BirdPacksDemo/>
 
-**a - Move Left**
-
-**d - Move Right**
-
-**w - Move Up**
-
-**s - Move Down**
+**Demo Trailer**: <https://youtu.be/NpaTAHtHU_E>
 
