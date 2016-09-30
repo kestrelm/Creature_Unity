@@ -4,7 +4,7 @@ This document describes the **Creature Pack Runtimes/Plugin** for the **Unity Ga
 
 ## Hummingbirds! ( Creature Pack Demo )
 
-![Non](http://creature.kestrelmoon.com/WebDemo/hummerShort2.gif)
+![Non](https://www.kestrelmoon.com/creature/WebDemo/hummerShort2.gif)
 
 Hummingbirds! is a demo done using the **Creature Pack Plugin**. It showcases an entire scene ( flowers, birds ) all animated in Creature and played back in Unity using the plugin in real-time.
 
