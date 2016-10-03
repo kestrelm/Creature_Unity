@@ -46,11 +46,13 @@ namespace CreatureModule
 	public class CreatureMetaData {
 		public Dictionary<int, Tuple<int, int>> mesh_map;
 		public Dictionary<String, Dictionary<int, List<int> >> anim_order_map;
+		public Dictionary<String, Dictionary<int, String>> anim_events_map;
 
 		public CreatureMetaData()
 		{
 			mesh_map = new Dictionary<int, Tuple<int, int>>();
 			anim_order_map = new Dictionary<String, Dictionary<int, List<int> >>();
+			anim_events_map = new Dictionary<String, Dictionary<int, String>>();
 		}
 
 		public void clear()
@@ -216,6 +218,7 @@ namespace CreatureModule
 			meta_data.clear();
 			var json_dict = JsonFx.Json.JsonReader.Deserialize(json_text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
 
+			// Build Region Ordering
 			if(json_dict.ContainsKey("meshes"))
 			{
 				var all_meshes = (Dictionary<string, object>)json_dict["meshes"];
@@ -249,6 +252,29 @@ namespace CreatureModule
 					}
 
 					meta_data.anim_order_map[anim_name] = write_order_dict;
+				}
+			}
+
+			// Build Event Triggers
+			if(json_dict.ContainsKey("eventTriggers"))
+			{
+				var events_obj = (Dictionary<string, object>)json_dict["eventTriggers"];
+				foreach(var cur_data in events_obj)
+				{
+					var cur_anim_name = cur_data.Key;
+					var cur_events_map = new Dictionary<int, string>();
+					var cur_obj_array = (System.Object[])cur_data.Value;
+
+					foreach(var cur_events_json in cur_obj_array)
+					{
+						var cur_events_obj = (Dictionary<string, object>)cur_events_json;
+						var cur_event_name = (string)cur_events_obj["event_name"];
+						var switch_time = Convert.ToInt32(cur_events_obj["switch_time"]);
+
+						cur_events_map[switch_time] = cur_event_name;
+					}
+
+					meta_data.anim_events_map[cur_anim_name] = cur_events_map;
 				}
 			}
 		}
@@ -1347,6 +1373,19 @@ namespace CreatureModule
 		// Returns the current run time of the animation
 		public float getRunTime()
 		{
+			return run_time;
+		}
+
+		// Returns current run time in consideration of blending
+		public float getActualRuntime() 
+		{
+			if(do_auto_blending)
+			{
+				if(active_blend_run_times.ContainsKey(active_animation_name)) {
+					return active_blend_run_times[active_animation_name];
+				}
+			}
+
 			return run_time;
 		}
 		

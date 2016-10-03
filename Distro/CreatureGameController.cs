@@ -45,10 +45,47 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+public class CreatureFrameCallback
+{
+	public CreatureFrameCallback()
+	{
+		resetCallback();
+	}
+
+	public void resetCallback()
+	{
+		triggered = false;
+	}
+
+	public bool tryTrigger(float frameIn)
+	{
+		if(triggered)
+		{
+			return false;
+		}
+
+		if((int)Math.Round(frameIn) >= frameIn)
+		{
+			triggered = true;
+			return true;
+		}
+
+		return false;
+	}
+
+	public string name;
+	public string animClipName;
+	public int frame = 0;
+	public bool triggered = false;
+}
+
 public class CreatureGameController : MonoBehaviour
 {
 	public CreatureRenderer creature_renderer;
 	public List<CreatureSwitchItemRenderer> switch_renderer_list;
+	public delegate void eventTrigger(string event_name);
+	public static event eventTrigger OnEventTrigger;
+	public List<CreatureFrameCallback> event_callbacks = new List<CreatureFrameCallback>();
 	public float colliderHeight;
 	public float simColliderWidth, simColliderHeight;
 	public bool noCollisions = false;
@@ -253,10 +290,84 @@ public class CreatureGameController : MonoBehaviour
 		// var cur_switcher = switch_renderer_list [0];
 		// cur_switcher.AddSwitchItem ("torsoSwitch1", new UnityEngine.Vector2 (136, 4), 481, 569, 2048, 2048);
 
+		if(creature_renderer)
+		{
+			creature_renderer.SetGameController(this);
+		}
+
+		BuildFrameCallbacks();
+		ResetFrameCallbacks();
+
 		// Call a custom agent if available
 		if (customAgent) 
 		{
 			customAgent.initState();
+		}
+	}
+
+	private void BuildFrameCallbacks()
+	{
+		if(creature_renderer)
+		{
+			var meta_asset = creature_renderer.creature_asset.creature_meta_data;
+			if(meta_asset != null)
+			{
+				foreach(var cur_data in meta_asset.anim_events_map)
+				{
+					foreach(var cur_event in cur_data.Value)
+					{
+						var new_callback = new CreatureFrameCallback();
+						new_callback.animClipName = cur_data.Key;
+						new_callback.name = cur_event.Value;
+						new_callback.frame = cur_event.Key;
+
+						event_callbacks.Add(new_callback);
+					}
+				}
+			}
+		}
+	}
+
+	private void ResetFrameCallbacks()
+	{
+		foreach(var frame_callback in event_callbacks)
+		{
+			frame_callback.resetCallback();
+		}
+	}
+
+	public void AnimClipChangeEvent()
+	{
+		var meta_asset = creature_renderer.creature_asset.creature_meta_data;
+		if(meta_asset != null)
+		{
+			ResetFrameCallbacks();
+		}
+	}
+
+	public void AnimClipFrameResetEvent()
+	{
+		var meta_asset = creature_renderer.creature_asset.creature_meta_data;
+		if(meta_asset != null)
+		{
+			ResetFrameCallbacks();
+		}
+	}
+
+	private void ProcessFrameCallbacks()
+	{
+		var cur_runtime = creature_renderer.creature_manager.getActualRuntime();
+		foreach(var frame_callback in event_callbacks)
+		{
+			if(frame_callback.animClipName == creature_renderer.creature_manager.active_animation_name)
+			{
+				var should_trigger = frame_callback.tryTrigger(cur_runtime);
+				//Debug.Log(frame_callback.name + " " + frame_callback.frame.ToString());
+				if(should_trigger && (OnEventTrigger != null))
+				{
+					OnEventTrigger(frame_callback.name);
+				}
+			}
 		}
 	}
 
@@ -315,6 +426,17 @@ public class CreatureGameController : MonoBehaviour
 		{
 			customAgent.updateStep();
 		}
+
+		// Call event triggers if required
+		if(creature_renderer)
+		{
+			var meta_asset = creature_renderer.creature_asset.creature_meta_data;
+			if(meta_asset != null)
+			{
+				ProcessFrameCallbacks();
+			}
+		}
+
 
 		// The following code demonstrates how to do item switching
 		/*

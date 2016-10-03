@@ -63,6 +63,7 @@ public class CreatureRenderer : MonoBehaviour
 	public float local_time_scale;
 	public CreatureAsset creature_asset;
 	public CreatureManager creature_manager;
+	private CreatureGameController game_controller = null;
 	public int animation_choice_index;
 	public string active_animation_name;
 	public float blend_rate = 0.1f;
@@ -109,6 +110,11 @@ public class CreatureRenderer : MonoBehaviour
 		uvs = null;
 		swap_mesh = false;
 		local_time = 0;
+	}
+
+	public void SetGameController(CreatureGameController controller_in)
+	{
+		game_controller = controller_in;
 	}
 
 	public void InitData()
@@ -179,6 +185,11 @@ public class CreatureRenderer : MonoBehaviour
 
 
 		local_time = creature_manager.animations [creature_manager.GetActiveAnimationName()].start_time;
+
+		if(game_controller)
+		{
+			game_controller.AnimClipChangeEvent();
+		}
 	}
 
 	public void BlendToAnimation(string animation_name)
@@ -190,6 +201,11 @@ public class CreatureRenderer : MonoBehaviour
 		active_animation_name = animation_name;
 		creature_manager.SetAutoBlending (true);
 		creature_manager.AutoBlendTo (animation_name, blend_rate);
+
+		if(game_controller)
+		{
+			game_controller.AnimClipChangeEvent();
+		}
 	}
 
 	// Returns the local playback time
@@ -348,13 +364,18 @@ public class CreatureRenderer : MonoBehaviour
 			return;
 		}
 
-
+		var old_time = creature_manager.getActualRuntime();
 		float time_delta = (Time.deltaTime * local_time_scale);
 
 		creature_manager.region_offsets_z = region_offsets_z;
 		creature_manager.should_loop = should_loop;
 		creature_manager.Update(time_delta);
-		local_time = creature_manager.getRunTime();
+		local_time = creature_manager.getActualRuntime();
+
+		if((local_time < old_time) && (game_controller != null))
+		{
+			game_controller.AnimClipFrameResetEvent();
+		}
 	}
 
 	public virtual void LateUpdate () 
