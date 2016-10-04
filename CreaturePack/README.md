@@ -12,6 +12,8 @@ Hummingbirds! is a demo done using the **Creature Pack Plugin**. It showcases an
 
 **Demo Trailer**: <https://youtu.be/NpaTAHtHU_E>
 
+**Tutorial Video**: <https://youtu.be/jCU1c_9peFE>
+
 ## Creature Pack vs Regular Creature JSON/Flatbuffers
 
 **Creature Pack** is a lightweight version of the original **Creature JSON/Flatbuffers** plugin. It has **MecAnim** support as well as an API that allows you to directly switch animation clips via C# scripting.
