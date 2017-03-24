@@ -8,6 +8,23 @@ using UnityEditor;
 using CreatureModule;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.IO;
+
+public class LiveSync
+{
+    [DllImport("CreatureClientDLL")]
+    public static extern bool creatureClient_startConnection();
+
+    [DllImport("CreatureClientDLL")]
+    public static extern bool creatureClient_stopConnection();
+
+    [DllImport("CreatureClientDLL")]
+    public static extern bool creatureClient_isConnected();
+
+    [DllImport("CreatureClientDLL")]
+    public static extern System.IntPtr creatureClient_retrieveRequestExportFilename([MarshalAs(UnmanagedType.LPStr)]string msg_type);
+}
 
 [CustomEditor(typeof(CreatureAsset))]
 public class CreatureAssetInspector : Editor {
@@ -35,6 +52,36 @@ public class CreatureAssetInspector : Editor {
 		flatCreatureData = serializedObject.FindProperty ("flatCreatureData");
 		creatureMetaJSON = serializedObject.FindProperty("creatureMetaJSON");
 	}
+
+    string GetLiveSyncType()
+    {
+        CreatureAsset creature_asset = (CreatureAsset)target;
+
+        if (!creature_asset.useFlatDataAsset)
+        {
+            TextAsset text_asset = (TextAsset)creatureJSON.objectReferenceValue;
+            if (text_asset)
+            {
+                if (text_asset.text.Length > 0)
+                {
+                    return "REQUEST_JSON";
+                }
+            }
+        }
+        else
+        {
+            TextAsset flat_text_asset = (TextAsset)flatCreatureData.objectReferenceValue;
+            if (flat_text_asset)
+            {
+                if (flat_text_asset.text.Length > 0)
+                {
+                    return "REQUEST_BYTES";
+                }
+            }
+        }
+
+        return "";
+    }
 
 	void UpdateData()
 	{
@@ -170,17 +217,83 @@ public class CreatureAssetInspector : Editor {
 			}
 		}
 
-		if (GUILayout.Button ("Build State Machine")) 
+        if (Application.platform == RuntimePlatform.WindowsEditor)
+        {
+            EditorGUILayout.LabelField("Live Sync Options", GUILayout.MaxHeight(20));
+            if (GUILayout.Button("Live Sync"))
+            {
+                RunLiveSync();
+            }
+        }
+
+        EditorGUILayout.LabelField("Animation State Options", GUILayout.MaxHeight(20));
+        if (GUILayout.Button ("Build State Machine")) 
 		{
 			CreateStateMachine();
 		}
 
-		EditorGUILayout.LabelField("Compression Options", GUILayout.MaxHeight(20));
-		if (GUILayout.Button ("Export as Compressed File")) 
-		{
-			SaveCompressedFile();
-		}
 	}
+
+    public void RunLiveSync()
+    {
+        CreatureAsset creature_asset = (CreatureAsset)target;
+        if (Application.platform == RuntimePlatform.WindowsEditor)
+        {
+            if(!LiveSync.creatureClient_isConnected())
+            {
+                var can_connect = LiveSync.creatureClient_startConnection();
+                if(!can_connect)
+                {
+                    LiveSync.creatureClient_stopConnection();
+                }
+            }
+
+            if(LiveSync.creatureClient_isConnected())
+            {
+                var sync_type = GetLiveSyncType();
+
+                if (sync_type.Length > 0)
+                {
+                    System.IntPtr raw_ptr =
+                        LiveSync.creatureClient_retrieveRequestExportFilename(sync_type);
+                    string response_str = Marshal.PtrToStringAnsi(raw_ptr);
+                    if (response_str.Length == 0)
+                    {
+                        UnityEditor.EditorUtility.DisplayDialog("Creature Live Sync Error", "Make sure Creature Pro is running in Animate Mode to Live Sync!", "Ok");
+                    }
+                    else
+                    {
+                        if(sync_type == "REQUEST_JSON")
+                        {
+                            string file_contents = System.IO.File.ReadAllText(response_str);
+                            TextAsset text_asset = (TextAsset)creatureJSON.objectReferenceValue;
+                            File.WriteAllText(AssetDatabase.GetAssetPath(text_asset), file_contents);
+                            EditorUtility.SetDirty(text_asset);
+                            creature_asset.creature_manager = null;
+                            UpdateData();
+                            creature_asset.SetIsDirty(true);
+                        }
+                        else if(sync_type == "REQUEST_BYTES")
+                        {
+                            byte[] file_contents = System.IO.File.ReadAllBytes(response_str);
+                            TextAsset flat_text_asset = (TextAsset)flatCreatureData.objectReferenceValue;
+                            File.WriteAllBytes(AssetDatabase.GetAssetPath(flat_text_asset), file_contents);
+                            EditorUtility.SetDirty(flat_text_asset);
+                            creature_asset.creature_manager = null;
+                            UpdateData();
+                            creature_asset.SetIsDirty(true);
+                        }
+
+                        AssetDatabase.Refresh();
+                    }
+                }
+            }
+            else
+            {
+                UnityEditor.EditorUtility.DisplayDialog("Creature Live Sync Error", "Make sure Creature Pro is running in Animate Mode to Live Sync!", "Ok");
+            }
+        }
+    }
 
 	public void SaveCompressedFile()
 	{
