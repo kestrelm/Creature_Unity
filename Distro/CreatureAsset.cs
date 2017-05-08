@@ -117,8 +117,11 @@ public class CreatureAsset : MonoBehaviour
 	[SerializeField]
 	public bool useFlatDataAsset = false;
 
+    [SerializeField]
+    public List<CreaturePhysicsData.BendPhysicsChain> physics_assets = new List<CreaturePhysicsData.BendPhysicsChain>();
+
 #if UNITY_EDITOR
-	[MenuItem("GameObject/Creature/CreatureAsset")]
+    [MenuItem("GameObject/Creature/CreatureAsset")]
 	static CreatureAsset CreateCreatureAsset()
 	{
 		GameObject newObj = new GameObject();
@@ -271,7 +274,10 @@ public class CreatureAsset : MonoBehaviour
 		if(creatureMetaJSON != null)
 		{
 			creature_meta_data = new CreatureMetaData();
-		 	CreatureModule.Utils.BuildCreatureMetaData(creature_meta_data, creatureMetaJSON.text);
+		 	CreatureModule.Utils.BuildCreatureMetaData(
+                creature_meta_data, 
+                creatureMetaJSON.text,
+                physics_assets);
 		}
 
 		return creature_manager;

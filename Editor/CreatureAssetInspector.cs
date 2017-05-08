@@ -117,7 +117,7 @@ public class CreatureAssetInspector : Editor {
 		TextAsset meta_text_asset = (TextAsset)creatureMetaJSON.objectReferenceValue;
 		if (meta_text_asset) {
 			if (meta_text_asset.text.Length > 0) {
-				creature_asset.ResetState ();
+                creature_asset.creature_manager = null;
 				creature_asset.creatureMetaJSON = meta_text_asset;
 			} 
 		}
@@ -181,7 +181,8 @@ public class CreatureAssetInspector : Editor {
 
 			int i = 1;
 			foreach (string cur_name in animation_names) {
-				EditorGUILayout.LabelField ("Animation Clip #" + i.ToString () + ":", 
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField ("Animation Clip #" + i.ToString () + ":", 
 				                            cur_name);
 
 				var cur_start_time = animation_clip_overrides[cur_name].start_frame;
@@ -219,18 +220,65 @@ public class CreatureAssetInspector : Editor {
 
         if (Application.platform == RuntimePlatform.WindowsEditor)
         {
-            EditorGUILayout.LabelField("Live Sync Options", GUILayout.MaxHeight(20));
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Live Sync Options", EditorStyles.boldLabel);
             if (GUILayout.Button("Live Sync"))
             {
                 RunLiveSync();
             }
         }
 
-        EditorGUILayout.LabelField("Animation State Options", GUILayout.MaxHeight(20));
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Animation State Options", EditorStyles.boldLabel);
         if (GUILayout.Button ("Build State Machine")) 
 		{
 			CreateStateMachine();
 		}
+
+        if(creature_asset.physics_assets.Count > 0)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Bend Physics Chains", EditorStyles.boldLabel);
+
+            foreach (var cur_chain in creature_asset.physics_assets)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField("Motor Name:", GUILayout.MaxWidth(100));
+                EditorGUILayout.LabelField(cur_chain.motor_name, GUILayout.MaxWidth(100));
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField("Anim Clip:", GUILayout.MaxWidth(100));
+                EditorGUILayout.LabelField(cur_chain.anim_clip_name, GUILayout.MaxWidth(100));
+                EditorGUILayout.EndHorizontal();
+
+                bool chain_active = cur_chain.active;
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                chain_active = EditorGUILayout.Toggle("Active:", chain_active);
+                EditorGUILayout.EndHorizontal();
+                cur_chain.active = chain_active;
+
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField("Num Bones:", GUILayout.MaxWidth(100));
+                EditorGUILayout.LabelField(cur_chain.num_bones.ToString(), GUILayout.MaxWidth(100));
+                EditorGUILayout.EndHorizontal();
+
+                float chain_stiffness = cur_chain.stiffness;
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField("Stiffness:", GUILayout.MaxWidth(100));
+                chain_stiffness = EditorGUILayout.FloatField(chain_stiffness, GUILayout.MaxWidth(50));
+                EditorGUILayout.EndHorizontal();
+                cur_chain.stiffness = chain_stiffness;
+
+                float chain_damping = cur_chain.damping;
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField("Damping:", GUILayout.MaxWidth(100));
+                chain_damping = EditorGUILayout.FloatField(chain_damping, GUILayout.MaxWidth(50));
+                EditorGUILayout.EndHorizontal();
+                cur_chain.damping = chain_damping;
+            }
+        }
 
 	}
 

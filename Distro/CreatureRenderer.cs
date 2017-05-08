@@ -64,7 +64,7 @@ public class CreatureRenderer : MonoBehaviour
 	public CreatureAsset creature_asset;
 	public CreatureManager creature_manager;
 	private CreatureGameController game_controller = null;
-	public int animation_choice_index;
+    public int animation_choice_index;
 	public string active_animation_name;
 	public float blend_rate = 0.1f;
 	public float region_offsets_z = 0.01f;
