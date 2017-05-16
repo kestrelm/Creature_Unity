@@ -160,6 +160,9 @@ public class CreatureGameController : MonoBehaviour
         {
             Destroy(physics_container);
         }
+
+        cur_manager.RunAtTime(cur_manager.GetActiveAnimationStartTime());
+
         physics_container = new GameObject("CreaturePhysicsContainer");
         bend_physics_data =
             CreatureModule.CreaturePhysicsData.PhysicsUtil.CreateBendPhysicsChain(

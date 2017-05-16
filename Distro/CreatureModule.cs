@@ -2009,6 +2009,28 @@ namespace CreatureModule
             active_blend_run_times[name_in] = cur_animation.start_time;
         }
 
+        public float GetActiveAnimationStartTime()
+        {
+            if (animations.ContainsKey(active_animation_name) == false)
+            {
+                return 0;
+            }
+
+            CreatureAnimation cur_animation = animations[active_animation_name];
+            return cur_animation.start_time;
+        }
+
+        public float GetActiveAnimationEndTime()
+        {
+            if (animations.ContainsKey(active_animation_name) == false)
+            {
+                return 0;
+            }
+
+            CreatureAnimation cur_animation = animations[active_animation_name];
+            return cur_animation.end_time;
+        }
+
         // Resets animation to start time
         public void ResetToStartTimes()
         {
