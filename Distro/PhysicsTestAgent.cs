@@ -34,6 +34,10 @@ public class PhysicsTestAgent : CreatureGameAgent
         {
             key_cooldown--;
         }
+
+        var bone_start = game_controller.GetBoneStartPt("Bone_6");
+        var bone_end = game_controller.GetBoneEndPt("Bone_6");
+        Debug.DrawLine(bone_start, bone_end, Color.yellow);
     }
 
     public override void initState()
