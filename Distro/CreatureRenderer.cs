@@ -70,8 +70,9 @@ public class CreatureRenderer : MonoBehaviour
 	public float region_offsets_z = 0.01f;
 	public bool should_loop;
 	public bool counter_clockwise = false;
+    public Dictionary<string, CreatureBoneData> feedback_bones;
 
-	private Mesh createMesh () {
+    private Mesh createMesh () {
 		Mesh new_mesh = new Mesh();
 		new_mesh.name = "Creature Mesh Object";
 		new_mesh.hideFlags = HideFlags.HideAndDontSave;
@@ -96,7 +97,8 @@ public class CreatureRenderer : MonoBehaviour
 	{
 		local_time_scale = 2.0f;
 		region_offsets_z = 0.01f;
-	}
+        feedback_bones = new Dictionary<string, CreatureBoneData>();
+    }
 	
 	public virtual void Reset()
 	{
@@ -126,8 +128,9 @@ public class CreatureRenderer : MonoBehaviour
 			creature_manager.active_blend_run_times = new Dictionary<string, float>(ref_manager.active_blend_run_times);
 			creature_manager.active_blend_animation_names = new List<string>(ref_manager.active_blend_animation_names);
 			creature_manager.auto_blend_names = new List<string>(ref_manager.auto_blend_names);
+            creature_manager.feedback_bones_map = feedback_bones;
 
-			SetActiveAnimation(active_animation_name);
+            SetActiveAnimation(active_animation_name);
 			creature_manager.SetIsPlaying(true);
 		}
 	}

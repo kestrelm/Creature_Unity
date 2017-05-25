@@ -149,27 +149,27 @@ public class CreatureGameController : MonoBehaviour
 
     public UnityEngine.Vector3 GetBoneStartPt(string bone_name)
     {
-        CreatureManager cur_manager = creature_renderer.creature_manager;
-        CreatureModule.Creature cur_creature = cur_manager.target_creature;
-        MeshRenderBoneComposition bone_composition = cur_creature.render_composition;
-        var bones_map = bone_composition.getBonesMap();
-        if(bones_map.ContainsKey(bone_name) == false)
+        var bones_map = creature_renderer.feedback_bones;
+        if (bones_map.ContainsKey(bone_name) == false)
         {
             Debug.LogWarning("Invalid Bone Name Requested for position: " + bone_name);
             return new UnityEngine.Vector3(0, 0, 0);
         }
 
-        var read_pt = bones_map[bone_name].getWorldStartPt();
-
+        var read_pt = bones_map[bone_name].start_pt;
         return TransformToCreaturePt(new UnityEngine.Vector3((float)read_pt.X, (float)read_pt.Y, 0));
     }
 
     public UnityEngine.Vector3 GetBoneEndPt(string bone_name)
     {
-        CreatureManager cur_manager = creature_renderer.creature_manager;
-        CreatureModule.Creature cur_creature = cur_manager.target_creature;
-        MeshRenderBoneComposition bone_composition = cur_creature.render_composition;
-        var read_pt = bone_composition.getBonesMap()[bone_name].getWorldEndPt();
+        var bones_map = creature_renderer.feedback_bones;
+        if (bones_map.ContainsKey(bone_name) == false)
+        {
+            Debug.LogWarning("Invalid Bone Name Requested for position: " + bone_name);
+            return new UnityEngine.Vector3(0, 0, 0);
+        }
+
+        var read_pt = bones_map[bone_name].end_pt;
 
         return TransformToCreaturePt(new UnityEngine.Vector3((float)read_pt.X, (float)read_pt.Y, 0));
     }

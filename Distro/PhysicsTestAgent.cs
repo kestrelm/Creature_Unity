@@ -28,6 +28,9 @@ public class PhysicsTestAgent : CreatureGameAgent
 
             game_controller.CreateBendPhysics("run");
             key_cooldown = 10;
+
+            game_controller.creature_renderer.blend_rate = 0.1f;
+            game_controller.creature_renderer.BlendToAnimation("default");
         }
 
         if(key_cooldown > 0)

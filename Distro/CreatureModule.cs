@@ -1450,6 +1450,30 @@ namespace CreatureModule
         }
     }
 
+    // High-level Class to store data on bones for feedback/retrieval layers
+    public class CreatureBoneData
+    {
+        public CreatureBoneData()
+        {
+            start_pt = new XnaGeometry.Vector3(0, 0, 0);
+            end_pt = new XnaGeometry.Vector3(0, 0, 0);
+        }
+
+        public CreatureBoneData(XnaGeometry.Vector3 start_pt_in, XnaGeometry.Vector3 end_pt_in)
+        {
+            start_pt = start_pt_in;
+            end_pt = end_pt_in;
+        }
+
+        public CreatureBoneData(XnaGeometry.Vector4 start_pt_in, XnaGeometry.Vector4 end_pt_in)
+        {
+            start_pt = new XnaGeometry.Vector3(start_pt_in.X, start_pt_in.Y, start_pt_in.Z);
+            end_pt = new XnaGeometry.Vector3(end_pt_in.X, end_pt_in.Y, end_pt_in.Z);
+        }
+
+        public XnaGeometry.Vector3 start_pt, end_pt;
+    }
+
     // Class for animating the creature character
     public class CreatureAnimation
     {
@@ -1576,6 +1600,7 @@ namespace CreatureModule
         public bool should_loop;
         public float region_offsets_z;
         public Action<Dictionary<string, MeshBone>> bones_override_callback;
+        public Dictionary<string, CreatureBoneData> feedback_bones_map;
 
         public CreatureManager(CreatureModule.Creature target_creature_in)
         {
@@ -1607,6 +1632,8 @@ namespace CreatureModule
             active_blend_run_times = new Dictionary<string, float>();
 
             should_loop = true;
+
+            feedback_bones_map = null;
         }
 
         // Create a point cache for a specific animation
@@ -1913,6 +1940,33 @@ namespace CreatureModule
                         UpdateRegionSwitches(active_blend_animation_names[i]);
                         PoseCreature(active_blend_animation_names[i], blend_render_pts[i], cur_animation_run_time);
                     }
+
+                    // Set feedback bones map for easy retrieval if available
+                    if (feedback_bones_map != null)
+                    {
+                        Dictionary<string, MeshBoneUtil.MeshBone> bones_map =
+                            target_creature.render_composition.getBonesMap();
+                        foreach (var cur_bone_packet in bones_map)
+                        {
+                            XnaGeometry.Vector4 cur_bone_start_pt = new XnaGeometry.Vector4(0, 0, 0, 0);
+                            XnaGeometry.Vector4 cur_bone_end_pt = new XnaGeometry.Vector4(0, 0, 0, 0);
+
+                            if ((i != 0) && (feedback_bones_map.ContainsKey(cur_bone_packet.Key)))
+                            {
+                                var read_start = feedback_bones_map[cur_bone_packet.Key].start_pt;
+                                var read_end = feedback_bones_map[cur_bone_packet.Key].end_pt;
+                                cur_bone_start_pt = new XnaGeometry.Vector4(read_start.X, read_start.Y, read_start.Z, 0);
+                                cur_bone_end_pt = new XnaGeometry.Vector4(read_end.X, read_end.Y, read_end.Z, 0);
+                            }
+
+                            var set_blend_factor = (i == 0) ? (1.0f - blending_factor) : blending_factor;
+
+                            var set_start_pt = set_blend_factor * cur_bone_packet.Value.getWorldStartPt() + cur_bone_start_pt;
+                            var set_end_pt = set_blend_factor * cur_bone_packet.Value.getWorldEndPt() + cur_bone_end_pt;
+
+                            feedback_bones_map[cur_bone_packet.Key] = new CreatureBoneData(set_start_pt, set_end_pt);
+                        }
+                    }
                 }
 
                 for (int j = 0; j < target_creature.total_num_pts * 3; j++)
@@ -1938,6 +1992,20 @@ namespace CreatureModule
                 else
                 {
                     PoseCreature(active_animation_name, target_creature.render_pts, getRunTime());
+                }
+
+                // Set feedback bones map for easy retrieval if available
+                if(feedback_bones_map != null)
+                {
+                    Dictionary<string, MeshBoneUtil.MeshBone> bones_map = 
+                        target_creature.render_composition.getBonesMap();
+                    foreach(var cur_bone_packet in bones_map)
+                    {
+                        feedback_bones_map[cur_bone_packet.Key] =
+                            new CreatureBoneData(
+                                cur_bone_packet.Value.getWorldStartPt(),
+                                cur_bone_packet.Value.getWorldEndPt());
+                    }
                 }
             }
 
