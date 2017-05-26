@@ -375,11 +375,23 @@ public class CreatureRenderer : MonoBehaviour
 		creature_manager.Update(time_delta);
 		local_time = creature_manager.getActualRuntime();
 
+        bool reached_anim_end = false;
 		if((local_time < old_time) && (game_controller != null))
 		{
 			game_controller.AnimClipFrameResetEvent();
+            reached_anim_end = true;
 		}
-	}
+
+        if(local_time >= creature_manager.GetAnimation(active_animation_name).end_time)
+        {
+            reached_anim_end = true;
+        }
+
+        if(reached_anim_end)
+        {
+            game_controller.AnimationReachedEnd(active_animation_name);
+        }
+    }
 
 	public virtual void LateUpdate () 
 	{

@@ -174,6 +174,14 @@ public class CreatureGameController : MonoBehaviour
         return TransformToCreaturePt(new UnityEngine.Vector3((float)read_pt.X, (float)read_pt.Y, 0));
     }
 
+    public void AnimationReachedEnd(string anim_name)
+    {
+        if(customAgent != null)
+        {
+            customAgent.AnimationReachedEnd(anim_name);
+        }
+    }
+
     public void CreateBendPhysics(string anim_clip)
     {
         if (bend_physics_data != null)

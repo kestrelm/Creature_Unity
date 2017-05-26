@@ -31,6 +31,10 @@ public class CreatureGameAgent : MonoBehaviour
 	public virtual void initState()
 	{
 	}
+
+    public virtual void AnimationReachedEnd(string anim_name)
+    {  
+    }
 }
 
 

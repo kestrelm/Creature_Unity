@@ -13,6 +13,11 @@ public class PhysicsTestAgent : CreatureGameAgent
 
     }
 
+    public override void AnimationReachedEnd(string anim_name)
+    {
+        Debug.Log("Reached end of Animation Clip: " + anim_name);
+    }
+
     public override void updateStep()
     {
         /*
