@@ -54,8 +54,10 @@ public class CreatureRenderer : MonoBehaviour
 	private Vector4[] tangents;
 	private Color32[] colors;
 	private Vector2[] uvs;
-	private int[] triangles;
-	private List<int> final_indices;
+    private int[] triangles, skin_swap_triangles;
+    private List<int> final_indices, final_skin_swap_indices;
+    bool skin_swap_active = false;
+    String skin_swap_name = "";
 	private bool swap_mesh;
 	private float local_time;
 	private bool use_custom_time_range;
@@ -241,6 +243,60 @@ public class CreatureRenderer : MonoBehaviour
 		custom_start_time = start_time;
 		custom_end_time = end_time;
 	}
+
+    public void EnableSkinSwap(String swap_name_in, bool active)
+    {
+        skin_swap_active = active;
+        if (!skin_swap_active)
+        {
+            skin_swap_name = "";
+            skin_swap_triangles = null;
+            final_skin_swap_indices = null;
+        }
+        else
+        {
+            skin_swap_name = swap_name_in;
+            if (creature_asset.creature_meta_data != null)
+            {
+                final_skin_swap_indices = new List<int>();
+                creature_asset.creature_meta_data.buildSkinSwapIndices(
+                    skin_swap_name,
+                    creature_manager.GetCreature().render_composition,
+                    final_skin_swap_indices);
+                skin_swap_triangles = new int[final_skin_swap_indices.Count];
+            }
+        }
+    }
+
+    public void DisableSkinSwap()
+    {
+        EnableSkinSwap("", false);
+    }
+
+    // Add your own custom Skin Swap into the object
+    public bool AddSkinSwap(String swap_name, HashSet<String> swap_set)
+    {
+        if(creature_asset.creature_meta_data == null)
+        {
+            return false;
+        }
+
+        if(creature_asset.creature_meta_data.skin_swaps.ContainsKey(swap_name))
+        {
+            return false;
+        }
+
+        creature_asset.creature_meta_data.skin_swaps[swap_name] = swap_set;
+
+        return true;
+    }
+
+    public bool shouldSkinSwap()
+    {
+        return (creature_asset.creature_meta_data != null) &&
+            skin_swap_active &&
+            (skin_swap_triangles != null);
+    }
 	
 	public void CreateRenderingData()
 	{
@@ -250,8 +306,28 @@ public class CreatureRenderer : MonoBehaviour
 		colors = new Color32[creature_manager.target_creature.total_num_pts];
 		uvs = new Vector2[creature_manager.target_creature.total_num_pts];
 		triangles = new int[creature_manager.target_creature.total_num_indices];
-		final_indices = new List<int>(new int[creature_manager.target_creature.total_num_indices]);
+        final_indices = new List<int>(new int[creature_manager.target_creature.total_num_indices]);
 	}
+
+    public void SetIndexBuffer(List<int> input_list, int[] output_array, bool do_counterclockwise)
+    {
+        if (!do_counterclockwise)
+        {
+            for (int i = 0; i < input_list.Count; i++)
+            {
+                output_array[i] = input_list[i];
+            }
+        }
+        else
+        {
+            for (int i = 0; i < input_list.Count; i += 3)
+            {
+                output_array[i] = input_list[i];
+                output_array[i + 1] = input_list[i + 2];
+                output_array[i + 2] = input_list[i + 1];
+            }
+        }
+    }
 	
 	public void UpdateRenderingData()
 	{
@@ -300,18 +376,20 @@ public class CreatureRenderer : MonoBehaviour
 		// index re-ordering
 		if(creature_asset.creature_meta_data != null)
 		{
-			// do index re-ordering
-			creature_asset.creature_meta_data.updateIndicesAndPoints(
-				final_indices,
-				render_indices,
-				render_pts,
-				0,
-				creature_manager.target_creature.total_num_indices,
-				creature_manager.target_creature.total_num_pts,
-				creature_manager.active_animation_name,
-				(int)creature_manager.run_time);
-
-		}
+            if(!shouldSkinSwap())
+            {
+                // do index re-ordering
+                creature_asset.creature_meta_data.updateIndicesAndPoints(
+                    final_indices,
+                    render_indices,
+                    render_pts,
+                    0,
+                    creature_manager.target_creature.total_num_indices,
+                    creature_manager.target_creature.total_num_pts,
+                    creature_manager.active_animation_name,
+                    (int)creature_manager.run_time);
+            }
+        }
 		else {
 			// plain copy
 			for(int i = 0; i < render_indices.Count; i++)
@@ -320,26 +398,18 @@ public class CreatureRenderer : MonoBehaviour
 			}
 		}
 
-		if(!counter_clockwise)
-		{
-			for(int i = 0; i < creature_manager.target_creature.total_num_indices; i++)
-			{
-				triangles[i] = final_indices[i];
-			}
-		}
-		else {
-			for(int i = 0; i < creature_manager.target_creature.total_num_indices; i+=3)
-			{
-				triangles[i] = final_indices[i];
-				triangles[i + 1] = final_indices[i + 2];
-				triangles[i + 2] = final_indices[i + 1];
-			}
-		}
+        if(shouldSkinSwap())
+        {
+            SetIndexBuffer(final_skin_swap_indices, skin_swap_triangles, counter_clockwise);
+        }
+        else
+        {
+            SetIndexBuffer(final_indices, triangles, counter_clockwise);
+        }
 
-
-		active_mesh.vertices = vertices;
+        active_mesh.vertices = vertices;
 		active_mesh.colors32 = colors;
-		active_mesh.triangles = triangles;
+		active_mesh.triangles = shouldSkinSwap() ? skin_swap_triangles: triangles;
 		active_mesh.normals = normals;
 		active_mesh.tangents = tangents;
 		active_mesh.uv = uvs;

@@ -280,6 +280,18 @@ public class CreatureAssetInspector : Editor {
             }
         }
 
+        if (creature_asset.skin_swap_names.Count > 0)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Skin Swaps", EditorStyles.boldLabel);
+            foreach (var cur_swap_name in creature_asset.skin_swap_names)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField(cur_swap_name, GUILayout.MaxWidth(100));
+                EditorGUILayout.EndHorizontal();
+            }
+        }
 	}
 
     public void RunLiveSync()

@@ -49,18 +49,63 @@ namespace CreatureModule
         public Dictionary<int, Tuple<int, int>> mesh_map;
         public Dictionary<String, Dictionary<int, List<int>>> anim_order_map;
         public Dictionary<String, Dictionary<int, String>> anim_events_map;
+        public Dictionary<String, HashSet<String>> skin_swaps;
 
         public CreatureMetaData()
         {
             mesh_map = new Dictionary<int, Tuple<int, int>>();
             anim_order_map = new Dictionary<String, Dictionary<int, List<int>>>();
             anim_events_map = new Dictionary<String, Dictionary<int, String>>();
+            skin_swaps = new Dictionary<string, HashSet<string>>();
         }
 
         public void clear()
         {
             mesh_map.Clear();
             anim_order_map.Clear();
+            skin_swaps.Clear();
+        }
+
+        public void buildSkinSwapIndices(
+            String swap_name,
+            MeshRenderBoneComposition bone_composition,
+            List<int> skin_swap_indices
+        )
+        {
+            if (!skin_swaps.ContainsKey(swap_name))
+            {
+                skin_swap_indices.Clear();
+                return;
+            }
+
+           var swap_set = skin_swaps[swap_name];
+           int total_size = 0;
+           var regions_map = bone_composition.getRegionsMap();
+            foreach (var cur_data in regions_map)
+            {
+                if (swap_set.Contains(cur_data.Key))
+                {
+                    var cur_region = cur_data.Value;
+                    total_size += cur_region.getNumIndices();
+                }
+            }
+
+            skin_swap_indices.Clear();
+
+            int offset = 0;
+            foreach(var cur_data in regions_map)
+            {
+                if (swap_set.Contains(cur_data.Key))
+                {
+                    var cur_region = cur_data.Value;
+                    for(int j = 0; j < cur_region.getNumIndices(); j++)
+                    {
+                        skin_swap_indices.Add(cur_region.getLocalIndex(j));
+                    }
+
+                    offset += cur_region.getNumIndices();
+                }
+            }
         }
 
         public void updateIndicesAndPoints(
@@ -614,7 +659,8 @@ namespace CreatureModule
         public static void BuildCreatureMetaData(
             CreatureMetaData meta_data, 
             string json_text_in,
-            List<CreaturePhysicsData.BendPhysicsChain> physics_assets)
+            List<CreaturePhysicsData.BendPhysicsChain> physics_assets,
+            List<String> skin_swap_names)
         {
             meta_data.clear();
             var json_dict = JsonFx.Json.JsonReader.Deserialize(json_text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
@@ -676,6 +722,27 @@ namespace CreatureModule
                     }
 
                     meta_data.anim_events_map[cur_anim_name] = cur_events_map;
+                }
+            }
+
+            // Skin Swaps
+            skin_swap_names.Clear();
+            if(json_dict.ContainsKey("skinSwapList"))
+            {
+                var skin_swap_obj = (Dictionary<string, object>)json_dict["skinSwapList"];
+                foreach(var cur_data in skin_swap_obj)
+                {
+                    var swap_name = cur_data.Key;
+                    var swap_data = (Dictionary<string, object>)((Dictionary<string, object>)cur_data.Value)["swap"];
+                    var swap_items = (System.Object[])swap_data["swap_items"];
+                    HashSet<String> swap_set = new HashSet<string>();
+                    foreach(var cur_item in swap_items)
+                    {
+                        swap_set.Add((String)cur_item);
+                    }
+
+                    meta_data.skin_swaps[swap_name] = swap_set;
+                    skin_swap_names.Add(swap_name);
                 }
             }
 

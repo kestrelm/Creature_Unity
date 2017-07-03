@@ -120,6 +120,9 @@ public class CreatureAsset : MonoBehaviour
     [SerializeField]
     public List<CreaturePhysicsData.BendPhysicsChain> physics_assets = new List<CreaturePhysicsData.BendPhysicsChain>();
 
+    [SerializeField]
+    public List<String> skin_swap_names = new List<String>();
+
 #if UNITY_EDITOR
     [MenuItem("GameObject/Creature/CreatureAsset")]
 	static CreatureAsset CreateCreatureAsset()
@@ -277,7 +280,8 @@ public class CreatureAsset : MonoBehaviour
 		 	CreatureModule.Utils.BuildCreatureMetaData(
                 creature_meta_data, 
                 creatureMetaJSON.text,
-                physics_assets);
+                physics_assets,
+                skin_swap_names);
 		}
 
 		return creature_manager;
