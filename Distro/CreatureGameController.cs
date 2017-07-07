@@ -469,11 +469,12 @@ public class CreatureGameController : MonoBehaviour
 			}
 			*/
 
-            cur_body.MoveRotation(setAngle);
-
-            UnityEngine.Vector3 local_pos = new UnityEngine.Vector3((float)spawn_center.X, (float)spawn_center.Y, (float)0);
-
-            cur_body.MovePosition(TransformToCreaturePt(local_pos));
+            if (cur_body != null)
+            {
+                cur_body.MoveRotation(setAngle);
+                UnityEngine.Vector3 local_pos = new UnityEngine.Vector3((float)spawn_center.X, (float)spawn_center.Y, (float)0);
+                cur_body.MovePosition(TransformToCreaturePt(local_pos));
+            }
 
             i++;
         }
