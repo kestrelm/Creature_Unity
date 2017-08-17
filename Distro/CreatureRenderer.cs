@@ -180,8 +180,9 @@ public class CreatureRenderer : MonoBehaviour
 		}
 
 		active_animation_name = animation_name;
+        creature_manager.SetAutoBlending(false);
 
-		bool can_set = creature_manager.SetActiveAnimationName (active_animation_name);
+        bool can_set = creature_manager.SetActiveAnimationName (active_animation_name);
 		if (!can_set) {
 			creature_manager.SetActiveAnimationName(creature_manager.GetAnimationNames()[0]);
 			active_animation_name = creature_manager.GetActiveAnimationName();

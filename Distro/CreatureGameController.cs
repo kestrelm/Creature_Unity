@@ -64,8 +64,8 @@ public class CreatureFrameCallback
 			return false;
 		}
 
-		if((int)Math.Round(frameIn) >= frameIn)
-		{
+        if ((int)Math.Round(frameIn) >= frame)
+        {
 			triggered = true;
 			return true;
 		}
@@ -84,7 +84,7 @@ public class CreatureGameController : MonoBehaviour
     public CreatureRenderer creature_renderer;
     public List<CreatureSwitchItemRenderer> switch_renderer_list;
     public delegate void eventTrigger(string event_name);
-    public static event eventTrigger OnEventTrigger;
+    public event eventTrigger OnEventTrigger;
     public List<CreatureFrameCallback> event_callbacks = new List<CreatureFrameCallback>();
     public CreaturePhysicsData bend_physics_data = null;
     public float colliderHeight;
