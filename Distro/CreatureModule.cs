@@ -1131,6 +1131,29 @@ namespace CreatureModule
             return ret_times;
         }
 
+        static public XnaGeometry.Vector4 ptInterp(XnaGeometry.Vector4 src_pt, XnaGeometry.Vector4 target_pt, float fraction)
+	    {
+            return ((1.0f - fraction) * src_pt) + (fraction* target_pt);
+        }
+
+        static public List<XnaGeometry.Vector2> ptsInterp(
+            List<XnaGeometry.Vector2> src_pts, 
+            List<XnaGeometry.Vector2> target_pts,
+            float fraction)
+		{
+            List<XnaGeometry.Vector2> ret_pts = new List<XnaGeometry.Vector2>();
+            for (var i = 0; i < src_pts.Count; i++)
+			{
+				ret_pts.Add(((1.0f - fraction) * src_pts[i]) + (fraction* target_pts[i]));
+            }
+
+			return ret_pts;
+		}
+        static public float scalarInterp(float src_val, float target_val, float fraction)
+        {
+            return ((1.0f - fraction) * src_val) + (fraction * target_val);
+        }
+
         static public void FillBoneCache(Dictionary<string, object> json_obj,
                                            string key,
                                            int start_time,
@@ -1141,6 +1164,7 @@ namespace CreatureModule
 
             cache_manager.init(start_time, end_time);
 
+            int prev_time = start_time;
             foreach (KeyValuePair<string, object> cur_node in base_obj)
             {
                 int cur_time = Convert.ToInt32(cur_node.Key);
@@ -1164,6 +1188,35 @@ namespace CreatureModule
 
                 int set_index = cache_manager.getIndexByTime(cur_time);
                 cache_manager.bone_cache_table[set_index] = cache_list;
+
+                var gap_diff = cur_time - prev_time;
+                if (gap_diff > 1)
+                {
+                    // Gap Step
+                    var prev_index = cache_manager.getIndexByTime(prev_time);
+                    for (int j = 1; j < gap_diff; j++)
+                    {
+                        var gap_fraction = (float)j / (float)gap_diff;
+                        List<MeshBoneCache> gap_cache_list = new List<MeshBoneCache>();
+                        
+                        for (int k = 0; k < cache_list.Count; k++)
+                        {
+                            var cur_data = cache_manager.bone_cache_table[set_index][k];
+                            var prev_data = cache_manager.bone_cache_table[prev_index][k];
+                            MeshBoneCache gap_cache_data = new MeshBoneCache(cur_data.getKey());
+                            gap_cache_data.setWorldStartPt(
+                                ptInterp(prev_data.getWorldStartPt(), cur_data.getWorldStartPt(), gap_fraction));
+                            gap_cache_data.setWorldEndPt(
+                                ptInterp(prev_data.getWorldEndPt(), cur_data.getWorldEndPt(), gap_fraction));
+
+                            gap_cache_list.Add(gap_cache_data);
+                        }
+
+                        cache_manager.bone_cache_table[prev_index + j] = gap_cache_list;
+                    }
+                }
+
+                prev_time = cur_time;
             }
 
             cache_manager.makeAllReady();
@@ -1179,6 +1232,7 @@ namespace CreatureModule
 
             cache_manager.init(start_time, end_time);
 
+            int prev_time = start_time;
             foreach (KeyValuePair<string, object> cur_node in base_obj)
             {
                 int cur_time = Convert.ToInt32(cur_node.Key);
@@ -1215,6 +1269,41 @@ namespace CreatureModule
 
                 int set_index = cache_manager.getIndexByTime(cur_time);
                 cache_manager.displacement_cache_table[set_index] = cache_list;
+
+                var gap_diff = cur_time - prev_time;
+                if (gap_diff > 1)
+                {
+                    // Gap Step
+                    var prev_index = cache_manager.getIndexByTime(prev_time);
+                    for (int j = 1; j < gap_diff; j++)
+                    {
+                        var gap_fraction = (float)j / (float)gap_diff;
+                        List<MeshDisplacementCache> gap_cache_list = new List<MeshDisplacementCache>();
+
+                        for (int k = 0; k < cache_list.Count; k++)
+                        {
+                            var cur_data = cache_manager.displacement_cache_table[set_index][k];
+                            var prev_data = cache_manager.displacement_cache_table[prev_index][k];
+                            MeshDisplacementCache gap_cache_data = new MeshDisplacementCache(cur_data.getKey());
+                            if (cur_data.getLocalDisplacements().Count > 0)
+                            {
+                                gap_cache_data.setLocalDisplacements(
+                                    ptsInterp(prev_data.getLocalDisplacements(), cur_data.getLocalDisplacements(), gap_fraction));
+                            }
+                            else
+                            {
+                                gap_cache_data.setPostDisplacements(
+                                    ptsInterp(prev_data.getPostDisplacements(), cur_data.getPostDisplacements(), gap_fraction));
+                            }
+
+                            gap_cache_list.Add(gap_cache_data);
+                        }
+
+                        cache_manager.displacement_cache_table[prev_index + j] = gap_cache_list;
+                    }
+                }
+
+                prev_time = cur_time;
             }
 
             cache_manager.makeAllReady();
@@ -1280,7 +1369,7 @@ namespace CreatureModule
 
             Dictionary<string, object> base_obj = (Dictionary<string, object>)json_obj[key];
 
-
+            int prev_time = start_time;
             foreach (KeyValuePair<string, object> cur_node in base_obj)
             {
                 int cur_time = Convert.ToInt32(cur_node.Key);
@@ -1302,6 +1391,31 @@ namespace CreatureModule
 
                 int set_index = cache_manager.getIndexByTime(cur_time);
                 cache_manager.opacity_cache_table[set_index] = cache_list;
+
+                var gap_diff = cur_time - prev_time;
+                if (gap_diff > 1)
+                {
+                    // Gap Step
+                    var prev_index = cache_manager.getIndexByTime(prev_time);
+                    for (int j = 1; j < gap_diff; j++)
+                    {
+                        var gap_fraction = (float)j / (float)gap_diff;
+                        List<MeshOpacityCache> gap_cache_list = new List<MeshOpacityCache>();
+                        for (int k = 0; k < cache_list.Count; k++)
+                        {
+                            var cur_data = cache_manager.opacity_cache_table[set_index][k];
+                            var prev_data = cache_manager.opacity_cache_table[prev_index][k];
+                            MeshOpacityCache gap_cache_data = new MeshOpacityCache(cur_data.getKey());
+                            gap_cache_data.setOpacity(scalarInterp(prev_data.getOpacity(), cur_data.getOpacity(), gap_fraction));
+
+                            gap_cache_list.Add(gap_cache_data);
+                        }
+
+                        cache_manager.opacity_cache_table[prev_index + j] = gap_cache_list;
+                    }
+                }
+
+                prev_time = cur_time;
             }
 
             cache_manager.makeAllReady();
