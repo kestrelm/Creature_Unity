@@ -380,6 +380,13 @@ public class CreatureRenderer : MonoBehaviour
             if(!shouldSkinSwap())
             {
                 // do index re-ordering
+                var real_run_time = creature_manager.run_time;
+                if (creature_manager.do_blending &&
+                    creature_manager.active_blend_run_times.ContainsKey(active_animation_name))
+                {
+                    real_run_time = creature_manager.active_blend_run_times[active_animation_name];
+                }
+
                 creature_asset.creature_meta_data.updateIndicesAndPoints(
                     final_indices,
                     render_indices,
@@ -387,8 +394,8 @@ public class CreatureRenderer : MonoBehaviour
                     0,
                     creature_manager.target_creature.total_num_indices,
                     creature_manager.target_creature.total_num_pts,
-                    creature_manager.active_animation_name,
-                    (int)creature_manager.run_time);
+                    active_animation_name,
+                    (int)real_run_time);
             }
         }
 		else {
