@@ -1154,6 +1154,11 @@ namespace CreatureModule
             return ((1.0f - fraction) * src_val) + (fraction * target_val);
         }
 
+        static public XnaGeometry.Vector4 vec4Interp(XnaGeometry.Vector4 src_vec, XnaGeometry.Vector4 target_vec, float fraction)
+        {
+            return ((1.0f - fraction) * src_vec) + (fraction * target_vec);
+        }
+
         static public void FillBoneCache(Dictionary<string, object> json_obj,
                                            string key,
                                            int start_time,
@@ -1736,6 +1741,21 @@ namespace CreatureModule
             return cache_pts.Count != 0;
         }
 
+        public float correctTime(float run_time)
+        {
+            float ret_time = run_time;
+            if (ret_time > end_time)
+            {
+                ret_time = start_time;
+            }
+            else if (ret_time < start_time)
+            {
+                ret_time = end_time;
+            }
+
+            return ret_time;
+        }
+
         public void poseFromCachePts(float time_in, List<float> target_pts, int num_pts)
         {
             int cur_floor_time = getIndexByTime((int)Math.Floor(time_in));
@@ -1756,6 +1776,123 @@ namespace CreatureModule
                 set_pt[2 + ref_idx] = ((1.0f - cur_ratio) * floor_pts[2 + ref_idx]) + (cur_ratio * ceil_pts[2 + ref_idx]);
 
                 ref_idx += 3;
+            }
+        }
+    }
+
+    // Classes for mixing/blending animation bones from different clips into the current clip
+    public class CreatureBonesBlend
+    {
+        public string anim_clip_name;
+        public List<string> bone_names = new List<string>();
+        public float blend_factor = 0.5f;
+        public float run_time = 0.0f;
+        public float delta_run_time = 1.0f;
+
+        public CreatureBonesBlend(string anim_clip_name_in, List<string> bone_names_in, float blend_factor_in)
+        {
+            anim_clip_name = anim_clip_name_in;
+            bone_names = bone_names_in;
+            blend_factor = blend_factor_in;
+        }
+    }
+
+    // Actual class to control mixing/blending animation bones from different clips into the current clip
+    // This allows you to actually blend parts of an animation ( certain bones ) from one clip to the current clip
+    // So you can blend in say some running motion of the arms into a walk cycle
+    /* Usage: First create a class that inherits from CreatureGameAgent.
+     * In the example below, we add a list of bones we intend to do do mixing on.
+     * We instantiate a CreatureBonesBlend object with the appropriate parameters ( animation clip we want to mix with plus the blending factor and bone list )
+     * We then add into into a CreatureModule.CreatureAnimBonesBlend object and assign it to the CreatureGameController
+     * See implementation details on how the actual blending is performed in the CreatureAnimBonesBlend update() call.
+        public class testHeroAgent : CreatureGameAgent
+        {
+            public override void initState()
+            {
+                var creature_renderer = game_controller.creature_renderer;
+
+                var bones_list = new List<string>();
+                bones_list.Add("BArm");
+                bones_list.Add("BElbow");
+                bones_list.Add("BHand");
+                bones_list.Add("BWeapon");
+     
+                var bones_mix = new CreatureModule.CreatureBonesBlend("Run", bones_list, 0.5f);
+                var bones_mix_manager = new CreatureModule.CreatureAnimBonesBlend();
+                bones_mix_manager.bones_blend.Add(bones_mix);
+                game_controller.anim_bones_blend = bones_mix_manager;
+            }
+
+            public override void updateStep()
+            {
+
+            }
+        }
+     * 
+     */
+    public class CreatureAnimBonesBlend
+    {
+        public List<CreatureBonesBlend> bones_blend = new List<CreatureBonesBlend>();
+        Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>> ref_bone_positions =
+            new Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>>();
+        Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>> final_bone_positions =
+            new Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>>();
+
+        public void update(
+            Dictionary<string, MeshBoneUtil.MeshBone> bones_map,
+            CreatureModule.CreatureManager creature_manager
+            )
+        {
+            var animations = creature_manager.GetAllAnimations();
+
+            // Save out current positions
+            foreach (var cur_data in bones_map)
+            {
+                ref_bone_positions[cur_data.Key] =
+                    new Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(
+                        cur_data.Value.getWorldStartPt(),
+                        cur_data.Value.getWorldEndPt());
+
+                final_bone_positions[cur_data.Key] =
+                    new Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(
+                        cur_data.Value.getWorldStartPt(),
+                        cur_data.Value.getWorldEndPt());
+            }
+
+            // Now do blending
+            foreach (var cur_blend in bones_blend)
+            {
+                var cur_anim = animations[cur_blend.anim_clip_name];
+                creature_manager.PoseJustBones(cur_blend.anim_clip_name, cur_blend.run_time, false);
+
+                cur_blend.run_time += cur_blend.delta_run_time;
+                cur_blend.run_time = cur_anim.correctTime(cur_blend.run_time);
+
+                foreach (var bone_name in cur_blend.bone_names)
+                {
+                    var set_bone = final_bone_positions[bone_name];
+                    var new_start =
+                        Utils.vec4Interp(
+                            ref_bone_positions[bone_name].Item1,
+                            bones_map[bone_name].getWorldStartPt(),
+                            cur_blend.blend_factor);
+
+                    var new_end =
+                        Utils.vec4Interp(
+                            ref_bone_positions[bone_name].Item2,
+                            bones_map[bone_name].getWorldEndPt(),
+                            cur_blend.blend_factor);
+
+                    final_bone_positions[bone_name] =
+                        new Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(new_start, new_end);
+                }
+            }
+
+            // Set actual bone positions
+            foreach (var cur_data in bones_map)
+            {
+                cur_data.Value.setWorldStartPt(final_bone_positions[cur_data.Key].Item1);
+                cur_data.Value.setWorldEndPt(final_bone_positions[cur_data.Key].Item2);
             }
         }
     }
@@ -2039,14 +2176,7 @@ namespace CreatureModule
         public void correctTime()
         {
             CreatureAnimation cur_animation = animations[active_animation_name];
-            if ((run_time > cur_animation.end_time) && should_loop)
-            {
-                run_time = cur_animation.start_time;
-            }
-            else if (run_time < cur_animation.start_time)
-            {
-                run_time = cur_animation.end_time;
-            }
+            run_time = cur_animation.correctTime(run_time);
         }
 
         // Returns the current run time of the animation
@@ -2517,7 +2647,8 @@ namespace CreatureModule
         }
 
         public void PoseJustBones(string animation_name_in,
-                                  float input_run_time)
+                                  float input_run_time,
+                                  bool run_callback=true)
         {
             CreatureAnimation cur_animation = animations[animation_name_in];
             MeshBoneUtil.MeshRenderBoneComposition render_composition =
@@ -2532,7 +2663,7 @@ namespace CreatureModule
 
             AlterBonesByAnchor(bones_map, animation_name_in);
 
-            if (bones_override_callback != null)
+            if ((bones_override_callback != null) && run_callback)
             {
                 bones_override_callback(bones_map);
             }

@@ -93,6 +93,7 @@ public class CreatureGameController : MonoBehaviour
     public bool noGravity = false;
     public Rigidbody2D parentRBD;
     public GameObject physics_container = null;
+    public CreatureAnimBonesBlend anim_bones_blend = null;
     List<Rigidbody2D> child_bodies;
     List<MeshBone> runtime_bones;
 
@@ -488,6 +489,12 @@ public class CreatureGameController : MonoBehaviour
             var parent_xform = creature_renderer.transform;
             bend_physics_data.updateAllKinematicBones(parent_xform);
             bend_physics_data.updateBonePositions(parent_xform);
+        }
+
+        // Perform any special bones mixing blending if required
+        if(anim_bones_blend != null)
+        {
+            anim_bones_blend.update(bones_map, creature_renderer.creature_manager);
         }
 
         // Run your own custom override
