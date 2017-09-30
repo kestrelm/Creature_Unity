@@ -108,7 +108,7 @@ public class CreaturePackRenderer : MonoBehaviour {
 
     public void InitData()
     {
-        if(pack_asset)
+        if (pack_asset && (pack_player == null))
         {
             var pack_loader = pack_asset.GetCreaturePackLoader();
             pack_player = new CreaturePackPlayer(pack_loader);
