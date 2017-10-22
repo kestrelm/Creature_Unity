@@ -10,6 +10,12 @@ public class CreatureStateMachineBehavior : StateMachineBehaviour {
 
 	override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
 	{
+        if(game_controller == null)
+        {
+            // Try to grab it from parent component
+            game_controller = animator.GetComponentInParent<CreatureGameController>();
+        }
+
 		var creature_renderer = game_controller.creature_renderer;
 		if (custom_frame_range) {
 			creature_renderer.creature_manager.GetAnimation(play_animation_name).start_time = custom_start_frame;
