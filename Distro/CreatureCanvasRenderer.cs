@@ -3,7 +3,6 @@ using System.IO;
 using System.Collections.Generic;
 using CreatureModule;
 using MeshBoneUtil;
-using MoongateCore.Logging;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -38,7 +37,7 @@ public class CreatureCanvasRenderer : MonoBehaviour {
   public bool should_loop = true;
   public bool counter_clockwise = false;
   public Dictionary<string, CreatureBoneData> feedback_bones;
-  public CreatureSkinPacker skinPacker = null;
+  public CreatureMaterialPacker materialPacker = null;
 
 #if UNITY_EDITOR
   [MenuItem("GameObject/Creature/CreatureCanvasRenderer")]
@@ -311,7 +310,11 @@ public class CreatureCanvasRenderer : MonoBehaviour {
       return;
     }
     canvasRenderer.materialCount = 1;
-    canvasRenderer.SetMaterial(skinPacker.GetMaterial(), 0);
+    bool alt = ((int)(Time.realtimeSinceStartup * 5.0f)) % 2 == 0;
+    canvasRenderer.SetMaterial(materialPacker.GetMaterial(new Dictionary<string, string>() {
+      { "face", "Skin_Pale" },
+      { "helmet", alt ? "Equip_Bronze" : "Equip_Silver"}
+    }), 0);
   }
 
   void OnDisable() {
