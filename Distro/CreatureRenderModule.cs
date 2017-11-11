@@ -170,20 +170,25 @@ namespace CreatureModule
             }
 
             List<int> render_indices = creature_manager.target_creature.global_indices;
+            var real_run_time = creature_manager.run_time;
+            if (creature_manager.do_blending &&
+                creature_manager.active_blend_run_times.ContainsKey(active_animation_name))
+            {
+                real_run_time = creature_manager.active_blend_run_times[active_animation_name];
+            }
+
+            bool is_animate_order = false;
+            if(creature_asset.creature_meta_data != null)
+            {
+                is_animate_order = creature_asset.creature_meta_data.hasAnimatedOrder(active_animation_name, (int)real_run_time);
+            }
 
             // index re-ordering
             if (creature_asset.creature_meta_data != null)
             {
-                if (!shouldSkinSwap(creature_asset, skin_swap_active, ref skin_swap_triangles))
+                if (is_animate_order)
                 {
                     // do index re-ordering
-                    var real_run_time = creature_manager.run_time;
-                    if (creature_manager.do_blending &&
-                        creature_manager.active_blend_run_times.ContainsKey(active_animation_name))
-                    {
-                        real_run_time = creature_manager.active_blend_run_times[active_animation_name];
-                    }
-
                     creature_asset.creature_meta_data.updateIndicesAndPoints(
                         final_indices,
                         render_indices,
@@ -192,24 +197,25 @@ namespace CreatureModule
                         creature_manager.target_creature.total_num_indices,
                         creature_manager.target_creature.total_num_pts,
                         active_animation_name,
+                        skin_swap_active,
                         (int)real_run_time);
+
+                    SetIndexBuffer(final_indices, triangles, counter_clockwise);
                 }
             }
-            else
+
+            if (shouldSkinSwap(creature_asset, skin_swap_active, ref skin_swap_triangles) && (is_animate_order == false))
+            {
+                // Skin Swap with no Animated Ordering
+                SetIndexBuffer(final_skin_swap_indices, skin_swap_triangles, counter_clockwise);
+            }
+            else if(is_animate_order == false)
             {
                 // plain copy
                 for (int i = 0; i < render_indices.Count; i++)
                 {
                     final_indices[i] = render_indices[i];
                 }
-            }
-
-            if (shouldSkinSwap(creature_asset, skin_swap_active, ref skin_swap_triangles))
-            {
-                SetIndexBuffer(final_skin_swap_indices, skin_swap_triangles, counter_clockwise);
-            }
-            else
-            {
                 SetIndexBuffer(final_indices, triangles, counter_clockwise);
             }
         }

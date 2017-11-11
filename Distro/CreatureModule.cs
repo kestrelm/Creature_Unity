@@ -50,6 +50,7 @@ namespace CreatureModule
         public Dictionary<String, Dictionary<int, List<int>>> anim_order_map;
         public Dictionary<String, Dictionary<int, String>> anim_events_map;
         public Dictionary<String, HashSet<String>> skin_swaps;
+        public HashSet<int> active_skin_swap_ids;
 
         public CreatureMetaData()
         {
@@ -57,6 +58,7 @@ namespace CreatureModule
             anim_order_map = new Dictionary<String, Dictionary<int, List<int>>>();
             anim_events_map = new Dictionary<String, Dictionary<int, String>>();
             skin_swaps = new Dictionary<string, HashSet<string>>();
+            active_skin_swap_ids = new HashSet<int>();
         }
 
         public void clear()
@@ -78,15 +80,17 @@ namespace CreatureModule
                 return;
             }
 
-           var swap_set = skin_swaps[swap_name];
-           int total_size = 0;
-           var regions_map = bone_composition.getRegionsMap();
+            var swap_set = skin_swaps[swap_name];
+            active_skin_swap_ids.Clear();
+            int total_size = 0;
+            var regions_map = bone_composition.getRegionsMap();
             foreach (var cur_data in regions_map)
             {
                 if (swap_set.Contains(cur_data.Key))
                 {
                     var cur_region = cur_data.Value;
                     total_size += cur_region.getNumIndices();
+                    active_skin_swap_ids.Add(cur_region.getTagId());
                 }
             }
 
@@ -108,6 +112,11 @@ namespace CreatureModule
             }
         }
 
+        public bool hasAnimatedOrder(String anim_name, int time_in)
+        {
+            return (sampleOrder(anim_name, time_in) != null);
+        }
+
         public void updateIndicesAndPoints(
             List<int> dst_indices,
             List<int> src_indices,
@@ -116,6 +125,7 @@ namespace CreatureModule
             int num_indices,
             int num_pts,
             String anim_name,
+            bool skin_swap_active,
             int time_in)
         {
             bool has_data = false;
@@ -158,12 +168,21 @@ namespace CreatureModule
                         return;
                     }
 
-                    for (int i = 0; i < num_write_indices; i++)
+                    bool valid_region = true;
+                    if(skin_swap_active)
                     {
-                        write_ptr[total_num_write_indices + i] = region_src_ptr[mesh_data.Item1 + i];
+                        valid_region = active_skin_swap_ids.Contains(region_id);
                     }
 
-                    total_num_write_indices += num_write_indices;
+                    if (valid_region)
+                    {
+                        for (int i = 0; i < num_write_indices; i++)
+                        {
+                            write_ptr[total_num_write_indices + i] = region_src_ptr[mesh_data.Item1 + i];
+                        }
+
+                        total_num_write_indices += num_write_indices;
+                    }
 
                     // Write points
                     int start_idx = mesh_data.Item1;
