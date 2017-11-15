@@ -254,7 +254,7 @@ namespace CreatureModule
                 reached_anim_end = true;
             }
 
-            if (reached_anim_end)
+            if (reached_anim_end && (game_controller != null))
             {
                 game_controller.AnimationReachedEnd(active_animation_name);
             }
