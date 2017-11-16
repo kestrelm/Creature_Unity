@@ -2000,6 +2000,7 @@ namespace CreatureModule
             {
                 run_time = (float)i;
                 List<float> new_pts = new List<float>(new float[target_creature.total_num_pts * 3]);
+                UpdateRegionSwitches(animation_name_in);
                 PoseCreature(animation_name_in, new_pts, getRunTime());
 
                 int realStep = gapStep;
