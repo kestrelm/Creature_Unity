@@ -200,7 +200,18 @@ namespace CreatureModule
                         skin_swap_active,
                         (int)real_run_time);
 
-                    SetIndexBuffer(final_indices, triangles, counter_clockwise);
+                    if(skin_swap_active)
+                    {
+                        for(int i = 0; i < final_skin_swap_indices.Count; i++)
+                        {
+                            final_skin_swap_indices[i] = final_indices[i];
+                        }
+                        SetIndexBuffer(final_skin_swap_indices, skin_swap_triangles, counter_clockwise);
+                    }
+                    else
+                    {
+                        SetIndexBuffer(final_indices, triangles, counter_clockwise);
+                    }
                 }
             }
 
