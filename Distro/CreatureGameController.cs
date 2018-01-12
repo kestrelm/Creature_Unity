@@ -79,6 +79,116 @@ public class CreatureFrameCallback
 	public bool triggered = false;
 }
 
+public class CreatureIKPacket : MonoBehaviour
+{
+    public Transform ik_target;
+    public bool ik_pos_angle = false;
+    public String ik_bone1, ik_bone2;
+    public List<MeshBone> carry_bones;
+    public List<Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>> bones_basis;
+
+#if UNITY_EDITOR
+    [MenuItem("GameObject/Creature/CreatureIKPacket")]
+    static CreatureIKPacket CreatePacket()
+    {
+        GameObject newObj = new GameObject();
+        newObj.name = "New Creature IK Packet";
+        CreatureIKPacket new_packet;
+        new_packet = newObj.AddComponent<CreatureIKPacket>() as CreatureIKPacket;
+
+        return new_packet;
+    }
+#endif
+
+    XnaGeometry.Vector2 getFromBasis(
+        XnaGeometry.Vector4 pt_in,
+         XnaGeometry.Vector4 base_vec_u,
+         XnaGeometry.Vector4 base_vec_v)
+    {
+        XnaGeometry.Vector2 basis = new XnaGeometry.Vector2(0, 0);
+        basis.X = XnaGeometry.Vector4.Dot(pt_in, base_vec_u);
+        basis.Y = XnaGeometry.Vector4.Dot(pt_in, base_vec_v);
+
+        return basis;
+    }
+
+    public void poseCarryBones(MeshBone endeffector_bone)
+    {
+        int i = 0;
+        foreach(var cur_bone in carry_bones)
+        {
+            var basis_pair = bones_basis[i];
+            var tmp_vec = endeffector_bone.getWorldEndPt() - endeffector_bone.getWorldStartPt();
+            var base_vec_u = new XnaGeometry.Vector2(tmp_vec.X, tmp_vec.Y);
+            base_vec_u.Normalize();
+
+            var base_vec_v = new XnaGeometry.Vector2(0, 0);
+            base_vec_v.X = -base_vec_u.Y;
+            base_vec_v.Y = base_vec_u.X;
+
+            var set_startpt = new XnaGeometry.Vector4(0, 0, 0, 1);
+            var set_endpt = new XnaGeometry.Vector4(0, 0, 0, 1);
+
+            var calcVec = new XnaGeometry.Vector2(0, 0);
+            calcVec = basis_pair.Item1.X * base_vec_u + basis_pair.Item1.Y * base_vec_v;
+
+            set_startpt.X = calcVec.X;
+            set_startpt.Y = calcVec.Y;
+            set_startpt += endeffector_bone.getWorldStartPt();
+            set_startpt.W = 1;
+
+            calcVec = basis_pair.Item2.X * base_vec_u + basis_pair.Item2.Y * base_vec_v;
+            set_endpt.X = calcVec.X;
+            set_endpt.Y = calcVec.Y;
+            set_endpt += endeffector_bone.getWorldStartPt();
+            set_endpt.W = 1;
+
+            cur_bone.setWorldStartPt(set_startpt);
+            cur_bone.setWorldEndPt(set_endpt);
+
+            i++;
+        }
+    }
+
+    public void initCarryBones(MeshBone endeffector_bone)
+    {
+        if(bones_basis != null)
+        {
+            // Already bound
+            return;
+        }
+
+        bones_basis = new List<Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>>();
+        carry_bones = endeffector_bone.getAllChildren();
+        carry_bones.RemoveAt(0); // Remove first end_effector bone, we do not want to carry that
+
+        var base_vec_u = endeffector_bone.getWorldEndPt() - endeffector_bone.getWorldStartPt();
+        base_vec_u.Normalize();
+
+        var base_vec_v = new XnaGeometry.Vector4(0, 0, 0, 0);
+        base_vec_v.X = -base_vec_u.Y;
+        base_vec_v.Y = base_vec_u.X;
+
+        foreach (var cur_bone in carry_bones)
+        {
+            var basis_start = getFromBasis(
+                cur_bone.getWorldStartPt() - endeffector_bone.getWorldStartPt(),
+                base_vec_u,
+                base_vec_v);
+
+            var basis_end = getFromBasis(
+                cur_bone.getWorldEndPt() - endeffector_bone.getWorldStartPt(),
+                base_vec_u,
+                base_vec_v);
+
+            var basis_pair =
+                new Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>(basis_start, basis_end);
+
+            bones_basis.Add(basis_pair);
+        }
+    }
+}
+
 public class CreatureGameController : MonoBehaviour
 {
     public CreatureRenderer creature_renderer;
@@ -96,6 +206,8 @@ public class CreatureGameController : MonoBehaviour
     public CreatureAnimBonesBlend anim_bones_blend = null;
     List<Rigidbody2D> child_bodies;
     List<MeshBone> runtime_bones;
+    public bool ik_on = false;
+    public List<CreatureIKPacket> ik_packets;
 
     public CreatureGameAgent customAgent;
 
@@ -120,6 +232,7 @@ public class CreatureGameController : MonoBehaviour
         new_controller.simColliderWidth = 10.0f;
         new_controller.simColliderHeight = 10.0f;
         new_controller.switch_renderer_list = new List<CreatureSwitchItemRenderer>();
+        new_controller.ik_packets = new List<CreatureIKPacket>();
 
         return new_controller;
     }
@@ -133,6 +246,11 @@ public class CreatureGameController : MonoBehaviour
     public UnityEngine.Vector3 TransformToCreaturePt(UnityEngine.Vector3 pt_in)
     {
         return creature_renderer.transform.TransformPoint(pt_in);
+    }
+
+    public UnityEngine.Vector3 TransformWorldPtToCreatureSpace(UnityEngine.Vector3 pt_in)
+    {
+        return creature_renderer.transform.InverseTransformPoint(pt_in);
     }
 
     void Awake()
@@ -497,17 +615,90 @@ public class CreatureGameController : MonoBehaviour
             anim_bones_blend.update(bones_map, creature_renderer.creature_manager);
         }
 
+        // Perform 2 bone ik if required
+        if(ik_on && (ik_packets.Count > 0))
+        {
+            foreach(var ik_packet in ik_packets)
+            {
+                UpdateBonesIKToCustomPositions(bones_map, ik_packet);
+            }
+        }
+
         // Run your own custom override
         UpdateBonesToCustomPositions(bones_map);
+    }
+
+    private void UpdateBonesIKToCustomPositions(
+        Dictionary<string, MeshBoneUtil.MeshBone> bones_map,
+        CreatureIKPacket ik_packet)
+    {
+        if(!bones_map.ContainsKey(ik_packet.ik_bone1) || !bones_map.ContainsKey(ik_packet.ik_bone2))
+        {
+            Debug.LogError("Error! IK Bones not set properly.");
+            return;
+        }
+
+        // Transform from world space to character space
+        var bone1 = bones_map[ik_packet.ik_bone1];
+        var bone2 = bones_map[ik_packet.ik_bone2];
+        var target_worldpos = ik_packet.ik_target.position;
+        var target_charpos = TransformWorldPtToCreatureSpace(target_worldpos);
+        var length1 = (bone1.getWorldStartPt() - bone1.getWorldEndPt()).Length();
+        var length2 = (bone2.getWorldStartPt() - bone2.getWorldEndPt()).Length();
+        var base_pt = bone1.getWorldStartPt();
+
+        ik_packet.initCarryBones(bone2);
+
+        double angle1 = 0, angle2 = 0;
+        CalcIK_2D_TwoBoneAnalytic(
+            out angle1, 
+            out angle2, 
+            ik_packet.ik_pos_angle, 
+            length1, 
+            length2, 
+            target_charpos.x - base_pt.X, 
+            target_charpos.y - base_pt.Y);
+        var rotVec1 = RotateVec2D(new XnaGeometry.Vector4(length1, 0, 0, 1), angle1);
+        var rotVec2 = RotateVec2D(new XnaGeometry.Vector4(length2, 0, 0, 1), angle2);
+        rotVec2 = RotateVec2D(rotVec2, angle1);
+
+        var bone1_startpt = base_pt;
+        var bone1_endpt = bone1_startpt + rotVec1;
+        var bone2_startpt = bone1_endpt;
+        var bone2_endpt = base_pt + rotVec2;
+
+        bone1.setWorldEndPt(bone1_endpt);
+
+        bone2.setWorldStartPt(bone2_startpt);
+        bone2.setWorldEndPt(bone2_endpt);
+
+        // Pose carry bones
+        ik_packet.poseCarryBones(bone2);
+    }
+
+    XnaGeometry.Vector4 RotateVec2D(XnaGeometry.Vector4 vec_in, double angle)
+    {
+        var ret_vec = new XnaGeometry.Vector4(0, 0, 0, 1);
+        ret_vec.X = vec_in.X * Math.Cos(angle) - vec_in.Y * Math.Sin(angle);
+        ret_vec.Y = vec_in.Y * Math.Cos(angle) + vec_in.X * Math.Sin(angle);
+
+        return ret_vec;
     }
 
     // Put your gameplay code here
     void FixedUpdate() {
 		// Call this to make the bone colliders follow the animation in a kinematic fashion
-		UpdateGameColliders();
+        if(creature_renderer)
+        {
+            UpdateGameColliders();
+        }
+        else
+        {
+            Debug.LogError("Creature Renderer not set for GameController!");
+        }
 
-		// Call a custom agent if available
-		if (customAgent) 
+        // Call a custom agent if available
+        if (customAgent) 
 		{
 			customAgent.updateStep();
 		}
@@ -635,5 +826,121 @@ public class CreatureGameController : MonoBehaviour
 
             Debug.Log ("Custom Update");
         */
+    }
+
+    /******************************************************************************
+      Copyright (c) 2008-2009 Ryan Juckett
+      http://www.ryanjuckett.com/
+  
+      This software is provided 'as-is', without any express or implied
+      warranty. In no event will the authors be held liable for any damages
+      arising from the use of this software.
+  
+      Permission is granted to anyone to use this software for any purpose,
+      including commercial applications, and to alter it and redistribute it
+      freely, subject to the following restrictions:
+  
+      1. The origin of this software must not be misrepresented; you must not
+         claim that you wrote the original software. If you use this software
+         in a product, an acknowledgment in the product documentation would be
+         appreciated but is not required.
+  
+      2. Altered source versions must be plainly marked as such, and must not be
+         misrepresented as being the original software.
+  
+      3. This notice may not be removed or altered from any source
+         distribution.
+    ******************************************************************************/
+    ///***************************************************************************************
+    /// CalcIK_2D_TwoBoneAnalytic
+    /// Given a two bone chain located at the origin (bone1 is the parent of bone2), this
+    /// function will compute the bone angles needed for the end of the chain to line up
+    /// with a target position. If there is no valid solution, the angles will be set to
+    /// get as close to the target as possible.
+    ///  
+    /// returns: True when a valid solution was found.
+    ///***************************************************************************************
+    public static bool CalcIK_2D_TwoBoneAnalytic
+    (
+        out double angle1,   // Angle of bone 1
+        out double angle2,   // Angle of bone 2
+        bool solvePosAngle2, // Solve for positive angle 2 instead of negative angle 2
+        double length1,      // Length of bone 1. Assumed to be >= zero
+        double length2,      // Length of bone 2. Assumed to be >= zero
+        double targetX,      // Target x position for the bones to reach
+        double targetY       // Target y position for the bones to reach
+    )
+    {
+        Debug.Assert(length1 >= 0);
+        Debug.Assert(length2 >= 0);
+
+        const double epsilon = 0.0001; // used to prevent division by small numbers
+
+        bool foundValidSolution = true;
+
+        double targetDistSqr = (targetX * targetX + targetY * targetY);
+
+        //===
+        // Compute a new value for angle2 along with its cosine
+        double sinAngle2;
+        double cosAngle2;
+
+        double cosAngle2_denom = 2 * length1 * length2;
+        if (cosAngle2_denom > epsilon)
+        {
+            cosAngle2 = (targetDistSqr - length1 * length1 - length2 * length2)
+                        / (cosAngle2_denom);
+
+            // if our result is not in the legal cosine range, we can not find a
+            // legal solution for the target
+            if ((cosAngle2 < -1.0) || (cosAngle2 > 1.0))
+                foundValidSolution = false;
+
+            // clamp our value into range so we can calculate the best
+            // solution when there are no valid ones
+            cosAngle2 = Math.Max(-1, Math.Min(1, cosAngle2));
+
+            // compute a new value for angle2
+            angle2 = Math.Acos(cosAngle2);
+
+            // adjust for the desired bend direction
+            if (!solvePosAngle2)
+                angle2 = -angle2;
+
+            // compute the sine of our angle
+            sinAngle2 = Math.Sin(angle2);
+        }
+        else
+        {
+            // At least one of the bones had a zero length. This means our
+            // solvable domain is a circle around the origin with a radius
+            // equal to the sum of our bone lengths.
+            double totalLenSqr = (length1 + length2) * (length1 + length2);
+            if (targetDistSqr < (totalLenSqr - epsilon)
+                || targetDistSqr > (totalLenSqr + epsilon))
+            {
+                foundValidSolution = false;
+            }
+
+            // Only the value of angle1 matters at this point. We can just
+            // set angle2 to zero. 
+            angle2 = 0.0;
+            cosAngle2 = 1.0;
+            sinAngle2 = 0.0;
+        }
+
+        //===
+        // Compute the value of angle1 based on the sine and cosine of angle2
+        double triAdjacent = length1 + length2 * cosAngle2;
+        double triOpposite = length2 * sinAngle2;
+
+        double tanY = targetY * triAdjacent - targetX * triOpposite;
+        double tanX = targetX * triAdjacent + targetY * triOpposite;
+
+        // Note that it is safe to call Atan2(0,0) which will happen if targetX and
+        // targetY are zero
+        angle1 = Math.Atan2(tanY, tanX);
+
+        return foundValidSolution;
     }
 }
