@@ -4,7 +4,32 @@ This is the runtime for Creature, the advanced 2D Skeletal and Mesh Animation To
 
 For more information on how to use the runtimes, please head over to this [site](http://www.kestrelmoon.com/creaturedocs/Game_Engine_Runtimes_And_Integration/Runtimes_Introduction.html)
 
+## Features of the Unity Runtime
+
+- Support for both JSON and Fast Loading Binary FlatBuffers formats
+- Optional High performance Point Caching playback
+- Skin/Item Swapping for different character meshes/regions
+- Animated Region Ordering
+- Game Agents + Controllers for customized Gameplay code
+- MecAnim Support
+- In Game 2 Bone IK
+- Bend Physics support for dangling bone chains via Unity PhysX
+- Smooth Animation Blending/Transitions
+- Unity UI Canvas Renderer Support
+- Gap Step Animation Compression Support
+- High Performance CreaturePack variant for character crowds, background scenes, secondary characters
+- Builds on all platforms ( PC/Mac/Linux/Console/Mobile )
+
+## Notes on deploying Creature Animations in Unity
+
+Please note you have the following options to deploy Creature animations in Unity:
+
+- Standard CreaturePlugin, all the features for main character gameplay requirements
+- CreaturePack, for character crowds, NPCs and scenarios where very high performance playback + loading is required
+- FBX, you can export a character as a FBX asset from Creature if it just uses Bone Motors ( Bone Skinning ), allowing you to use the full Unity Skeletal Animation pipeline
+
 ## Deploying for iOS and other platforms
+
 If you are having issues with deploying for platforms like iOS ( **UnusedBytecodeStripper2.exe did not run properly etc.** ), you should give the following a go:
 
 1) Remove the **CreatureFlatData.dll** from the **Distro** directory
@@ -35,7 +60,7 @@ Video of the Demo is [here.](https://youtu.be/XkJa1VzWrc8)
 
 Download the full Unity source + assets of the demo [here.](https://github.com/kestrelm/CreatureDemos/tree/master/CreatureUI)
 
-####Artwork Credits
+#### Artwork Credits
 Reaper: Katarzyna Zalecka. CC-BY-SA 3.0, [Ancient Beast](https://github.com/FreezingMoon/AncientBeast)
 
 Background: David Revoy, CC BY 3.0
