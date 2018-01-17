@@ -247,7 +247,6 @@ namespace CreaturePackModule
 			    }
             }		
 	    }
-
     }
 
     // This is the class the loads in Creature Pack Data from the byte stream
@@ -285,6 +284,7 @@ namespace CreaturePackModule
         public object[] headerList;
         public object[] animPairsOffsetList;
         public List<Pair<uint, uint>> meshRegionsList;
+        public float dMinX, dMinY, dMaxX, dMaxY;
 
         public CreaturePackLoader()
         {
@@ -336,6 +336,36 @@ namespace CreaturePackModule
             }
             
             return sum;
+        }
+
+        public string hasDeformCompress()
+        {
+            for (int i = 0; i < headerList.Length; i++)
+            {
+                if ((string)headerList[i] == "deform_comp1")
+                {
+                    return "deform_comp1";
+                }
+                else if ((string)headerList[i] == "deform_comp2")
+                {
+                    return "deform_comp2";
+                }
+            }
+
+            return "";
+        }
+
+        public void fillDeformRanges()
+        {
+            if(hasDeformCompress().Length > 0)
+            {
+                var cur_ranges_offset = getAnimationOffsets(getAnimationNum());
+                var cur_ranges = (object[])fileData[cur_ranges_offset.first];
+                dMinX = (float)(cur_ranges[0]);
+                dMinY = (float)(cur_ranges[1]);
+                dMaxX = (float)(cur_ranges[2]);
+                dMaxY = (float)(cur_ranges[3]);
+            }
         }
 
         public Pair<int, int> getAnimationOffsets(int idx)
@@ -404,7 +434,10 @@ namespace CreaturePackModule
             updateIndices(getBaseIndicesOffset());
             updatePoints(getBasePointsOffset());
             updateUVs(getBaseUvsOffset());
-            
+
+            fillDeformRanges();
+            finalAllPointSamples();
+
             // init Animation Clip Map		
             for (int i = 0; i < getAnimationNum(); i++)
             {
@@ -426,7 +459,72 @@ namespace CreaturePackModule
                 newClip.finalTimeSamples();
                 animClipMap[animName] = newClip;
             }
+        }
 
+        public void finalAllPointSamples()
+        {
+            var deformCompressType = hasDeformCompress();
+            if (deformCompressType.Length == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < getAnimationNum(); i++)
+            {
+                var curOffsetPair = getAnimationOffsets(i);
+
+                var animName = (string)(fileData[curOffsetPair.first]);
+                var k = curOffsetPair.first;
+                k++;
+
+                while (k < curOffsetPair.second)
+                {
+                    var pts_raw_array = fileData[k + 1];
+                    int raw_num = 0;
+                    if(pts_raw_array.GetType() == typeof(object[]))
+                    {
+                        raw_num = ((object[])pts_raw_array).Length;
+                    }
+                    else if(pts_raw_array.GetType() == typeof(byte[]))
+                    {
+                        raw_num = ((byte[])pts_raw_array).Length;
+                    }
+
+                    var final_pts_array = new object[raw_num];
+                    for (int m = 0; m < raw_num; m++)
+                    {
+                        float bucketVal = 0.0f;
+                        float numBuckets = 0.0f;
+                        if(deformCompressType == "deform_comp1")
+                        {
+                            var pts_array = (object[])pts_raw_array;
+                            bucketVal = Convert.ToSingle((long)pts_array[m]);
+                            numBuckets = 65535.0f;
+                        }
+                        else if (deformCompressType == "deform_comp2")
+                        {
+                            var pts_array = (byte[])pts_raw_array;
+                            bucketVal = Convert.ToSingle((byte)pts_array[m]);
+                            numBuckets = 255.0f;
+                        }
+
+                        float setVal = 0.0f;
+                        if(m % 2 == 0)
+                        {
+                            setVal = (bucketVal / numBuckets * (dMaxX - dMinX)) + dMinX;
+                        }
+                        else
+                        {
+                            setVal = (bucketVal / numBuckets * (dMaxY - dMinY)) + dMinY;
+                        }
+
+                        final_pts_array[m] = setVal;
+                    }
+                    fileData[k + 1] = final_pts_array;
+
+                    k += 4;
+                }
+            }
         }
 
         public string GetFirstAnimClipName()
