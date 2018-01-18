@@ -512,10 +512,12 @@ namespace CreaturePackModule
                         if(m % 2 == 0)
                         {
                             setVal = (bucketVal / numBuckets * (dMaxX - dMinX)) + dMinX;
+                            setVal += points[m];
                         }
                         else
                         {
                             setVal = (bucketVal / numBuckets * (dMaxY - dMinY)) + dMinY;
+                            setVal += points[m];
                         }
 
                         final_pts_array[m] = setVal;
