@@ -642,7 +642,7 @@ namespace CreaturePackModule
         int renders_base_size;
         Dictionary<string, float> runTimeMap;
         public bool isPlaying, isLooping;
-        string activeAnimationName, prevAnimationName;
+        public string activeAnimationName, prevAnimationName;
         float animBlendFactor, animBlendDelta;
 
         public CreaturePackPlayer(CreaturePackLoader dataIn)

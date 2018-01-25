@@ -38,15 +38,17 @@ using CreaturePackModule;
 using System;
 using System.IO;
 using System.Collections.Generic;
+using SimpleJSON;
 
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 public class CreaturePackAsset : MonoBehaviour {
-    public TextAsset creaturePackBytes = null;
+    public TextAsset creaturePackBytes = null, creatureMetaJSON = null;
     private bool is_dirty = false;
     private CreaturePackLoader packData = null;
+    public Dictionary<String, Vector2> anchor_points = null;
 
     public CreaturePackAsset()
     {
@@ -86,6 +88,33 @@ public class CreaturePackAsset : MonoBehaviour {
     public void SetIsDirty(bool flagIn)
     {
         is_dirty = flagIn;
+    }
+
+    public void LoadMetaData()
+    {
+        if(!creatureMetaJSON)
+        {
+            return;
+        }
+
+        if(anchor_points != null)
+        {
+            return;
+        }
+
+        anchor_points = new Dictionary<String, Vector2>();
+        var readJSON = JSON.Parse(creatureMetaJSON.text);
+        if(readJSON.HasKey("AnchorPoints"))
+        {
+            var readAnchors = readJSON["AnchorPoints"]["anchors"];
+            for(int i = 0; i < readAnchors.Count; i++)
+            {
+                var readData = readAnchors[i.ToString()];
+                var readName = readData["name"];
+                var readPt = readData["point"];
+                anchor_points[readName] = new Vector2(readPt[0].AsFloat, readPt[1].AsFloat);
+            }
+        }
     }
 
     public CreaturePackLoader GetCreaturePackLoader()

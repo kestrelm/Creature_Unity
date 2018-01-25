@@ -8,6 +8,7 @@ using System.Collections.Generic;
 public class CreaturePackAssetInspector : Editor
 {
     private SerializedProperty creaturePackBytes;
+    private SerializedProperty creatureMetaJSON;
 
     public CreaturePackAssetInspector()
     {
@@ -17,18 +18,34 @@ public class CreaturePackAssetInspector : Editor
     public void OnEnable()
     {
         creaturePackBytes = serializedObject.FindProperty("creaturePackBytes");
+        creatureMetaJSON = serializedObject.FindProperty("creatureMetaJSON");
     }
 
     public void UpdateDate()
     {
         CreaturePackAsset packAsset = (CreaturePackAsset)target;
-        TextAsset bytesAsset = (TextAsset)creaturePackBytes.objectReferenceValue;
-        if (bytesAsset)
+
         {
-            if (bytesAsset.bytes.Length > 0)
+            TextAsset bytesAsset = (TextAsset)creaturePackBytes.objectReferenceValue;
+            if (bytesAsset)
             {
-                packAsset.ResetState();
-                packAsset.creaturePackBytes = bytesAsset;
+                if (bytesAsset.bytes.Length > 0)
+                {
+                    packAsset.ResetState();
+                    packAsset.creaturePackBytes = bytesAsset;
+                }
+            }
+        }
+
+        {
+            TextAsset jsonAsset = (TextAsset)creatureMetaJSON.objectReferenceValue;
+            if (jsonAsset)
+            {
+                if (jsonAsset.bytes.Length > 0)
+                {
+                    packAsset.ResetState();
+                    packAsset.creatureMetaJSON = jsonAsset;
+                }
             }
         }
     }
@@ -41,6 +58,7 @@ public class CreaturePackAssetInspector : Editor
         EditorGUI.BeginChangeCheck();
 
         EditorGUILayout.PropertyField(creaturePackBytes);
+        EditorGUILayout.PropertyField(creatureMetaJSON);
 
         bool did_change = EditorGUI.EndChangeCheck();
 
