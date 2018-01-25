@@ -64,7 +64,7 @@ public class CreaturePackRenderer : MonoBehaviour {
     public float region_offsets_z = 0.01f;
     public bool should_loop = true, should_play = true;
     public bool counter_clockwise = false;
-    public bool use_anchorpts = false;
+    public bool use_anchor_pts = false;
 
     private Mesh createMesh()
     {
@@ -115,7 +115,7 @@ public class CreaturePackRenderer : MonoBehaviour {
             pack_player = new CreaturePackPlayer(pack_loader);
             pack_player.setActiveAnimation(active_animation_name);
 
-            if(use_anchorpts)
+            if(use_anchor_pts)
             {
                 pack_asset.LoadMetaData();
             }
@@ -222,15 +222,23 @@ public class CreaturePackRenderer : MonoBehaviour {
             cur_z += region_offsets_z;
         }
 
-        if (use_anchorpts)
+        if (use_anchor_pts)
         {
-            if (pack_asset.anchor_points.ContainsKey(pack_player.activeAnimationName))
+            if(pack_asset.anchor_points == null)
             {
-                var curAnchorPts = pack_asset.anchor_points[pack_player.activeAnimationName];
-                for (int i = 0; i < total_num_pts; i++)
+                pack_asset.LoadMetaData();
+            }
+
+            if (pack_asset.anchor_points != null)
+            {
+                if (pack_asset.anchor_points.ContainsKey(pack_player.activeAnimationName))
                 {
-                    vertices[i].x -= curAnchorPts.x;
-                    vertices[i].y -= curAnchorPts.y;
+                    var curAnchorPts = pack_asset.anchor_points[pack_player.activeAnimationName];
+                    for (int i = 0; i < total_num_pts; i++)
+                    {
+                        vertices[i].x -= curAnchorPts.x;
+                        vertices[i].y -= curAnchorPts.y;
+                    }
                 }
             }
         }

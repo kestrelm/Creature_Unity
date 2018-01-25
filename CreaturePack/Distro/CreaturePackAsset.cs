@@ -71,6 +71,7 @@ public class CreaturePackAsset : MonoBehaviour {
     public void ResetState()
     {
         creaturePackBytes = null;
+        creatureMetaJSON = null;
         packData = null;
         is_dirty = false;
     }
@@ -109,7 +110,7 @@ public class CreaturePackAsset : MonoBehaviour {
             var readAnchors = readJSON["AnchorPoints"]["anchors"];
             for(int i = 0; i < readAnchors.Count; i++)
             {
-                var readData = readAnchors[i.ToString()];
+                var readData = readAnchors[i];
                 var readName = readData["name"];
                 var readPt = readData["point"];
                 anchor_points[readName] = new Vector2(readPt[0].AsFloat, readPt[1].AsFloat);

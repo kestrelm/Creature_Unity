@@ -43,7 +43,6 @@ public class CreaturePackAssetInspector : Editor
             {
                 if (jsonAsset.bytes.Length > 0)
                 {
-                    packAsset.ResetState();
                     packAsset.creatureMetaJSON = jsonAsset;
                 }
             }
