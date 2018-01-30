@@ -65,6 +65,7 @@ public class CreaturePackRenderer : MonoBehaviour {
     public bool should_loop = true, should_play = true;
     public bool counter_clockwise = false;
     public bool use_anchor_pts = false;
+    public string anchor_pts_anim = "";
 
     private Mesh createMesh()
     {
@@ -231,9 +232,15 @@ public class CreaturePackRenderer : MonoBehaviour {
 
             if (pack_asset.anchor_points != null)
             {
-                if (pack_asset.anchor_points.ContainsKey(pack_player.activeAnimationName))
+                string cur_anchor_anim = pack_player.activeAnimationName;
+                if(anchor_pts_anim.Length > 0)
                 {
-                    var curAnchorPts = pack_asset.anchor_points[pack_player.activeAnimationName];
+                    cur_anchor_anim = anchor_pts_anim;
+                }
+
+                if (pack_asset.anchor_points.ContainsKey(cur_anchor_anim))
+                {
+                    var curAnchorPts = pack_asset.anchor_points[cur_anchor_anim];
                     for (int i = 0; i < total_num_pts; i++)
                     {
                         vertices[i].x -= curAnchorPts.x;
