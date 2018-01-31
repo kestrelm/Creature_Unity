@@ -46,82 +46,77 @@ using UnityEditor;
 
 [Serializable]
 public class CreatureAnimationAssetData {
-	[SerializeField]
-	public int start_frame;
-	[SerializeField]
-	public int end_frame;
+  [SerializeField]
+  public int start_frame;
+  [SerializeField]
+  public int end_frame;
 
-	[SerializeField]
-	public bool make_point_cache;
+  [SerializeField]
+  public bool make_point_cache;
 
-	[SerializeField]
-	public int cache_approximation;
+  [SerializeField]
+  public int cache_approximation;
 
-	public CreatureAnimationAssetData(int start_frame_in, int end_frame_in) {
-		start_frame = start_frame_in;
-		end_frame = end_frame_in;
-		make_point_cache = false;
-		cache_approximation = 1;
-	}
+  public CreatureAnimationAssetData(int start_frame_in, int end_frame_in) {
+    start_frame = start_frame_in;
+    end_frame = end_frame_in;
+    make_point_cache = false;
+    cache_approximation = 1;
+  }
 }
 
 [Serializable]
-public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializationCallbackReceiver
-{
-	[SerializeField]
-	private List<TKey> keys = new List<TKey>();
-	
-	[SerializeField]
-	private List<TValue> values = new List<TValue>();
-	
-	// save the dictionary to lists
-	public void OnBeforeSerialize()
-	{
-		keys.Clear();
-		values.Clear();
-		foreach(KeyValuePair<TKey, TValue> pair in this)
-		{
-			keys.Add(pair.Key);
-			values.Add(pair.Value);
-		}
-	}
-	
-	// load dictionary from lists
-	public void OnAfterDeserialize()
-	{
-		this.Clear();
-		
-		if(keys.Count != values.Count)
-			throw new System.Exception(string.Format("there are {0} keys and {1} values after deserialization. Make sure that both key and value types are serializable."));
-		
-		for(int i = 0; i < keys.Count; i++)
-			this.Add(keys[i], values[i]);
-	}
+public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializationCallbackReceiver {
+  [SerializeField]
+  private List<TKey> keys = new List<TKey>();
+
+  [SerializeField]
+  private List<TValue> values = new List<TValue>();
+
+  // save the dictionary to lists
+  public void OnBeforeSerialize() {
+    keys.Clear();
+    values.Clear();
+    foreach (KeyValuePair<TKey, TValue> pair in this) {
+      keys.Add(pair.Key);
+      values.Add(pair.Value);
+    }
+  }
+
+  // load dictionary from lists
+  public void OnAfterDeserialize() {
+    this.Clear();
+
+    if (keys.Count != values.Count)
+      throw new System.Exception(string.Format("there are {0} keys and {1} values after deserialization. Make sure that both key and value types are serializable."));
+
+    for (int i = 0; i < keys.Count; i++)
+      this.Add(keys[i], values[i]);
+  }
 }
 
-[Serializable] public class DictionaryOfStringAndAnimation : SerializableDictionary<string, CreatureAnimationAssetData> {}
+[Serializable] public class DictionaryOfStringAndAnimation : SerializableDictionary<string, CreatureAnimationAssetData> { }
 
-public class CreatureAsset : MonoBehaviour
-{
-	public TextAsset creatureJSON, compressedCreatureJSON, flatCreatureData, creatureMetaJSON;
-	public CreatureManager creature_manager = null;
-	public CreatureMetaData creature_meta_data = null;
-	private bool is_dirty;
+public class CreatureAsset : MonoBehaviour {
+  public TextAsset creatureJSON, compressedCreatureJSON, flatCreatureData, creatureMetaJSON;
+  public CreatureManager creature_manager = null;
+  public CreatureMetaData creature_meta_data = null;
+  private bool is_dirty;
 
-	[SerializeField]
-	public DictionaryOfStringAndAnimation animation_clip_overides = new DictionaryOfStringAndAnimation ();
+  [SerializeField]
+  public DictionaryOfStringAndAnimation animation_clip_overides = new DictionaryOfStringAndAnimation();
 
-	[SerializeField]
-	public bool useCompressedAsset = false;
+  [SerializeField]
+  public bool useCompressedAsset = false;
 
-	[SerializeField]
-	public bool useFlatDataAsset = false;
+  [SerializeField]
+  public bool useFlatDataAsset = false;
 
-    [SerializeField]
-    public List<CreaturePhysicsData.BendPhysicsChain> physics_assets = new List<CreaturePhysicsData.BendPhysicsChain>();
+  [SerializeField]
+  public List<CreaturePhysicsData.BendPhysicsChain> physics_assets = new List<CreaturePhysicsData.BendPhysicsChain>();
 
-    [SerializeField]
-    public List<String> skin_swap_names = new List<String>();
+  [SerializeField]
+  public List<String> skin_swap_names = new List<String>();
 
 #if UNITY_EDITOR
     [MenuItem("GameObject/Creature/CreatureAsset")]
@@ -131,160 +126,142 @@ public class CreatureAsset : MonoBehaviour
 		newObj.name = "New Creature Asset";
 		CreatureAsset new_asset;
 		new_asset = newObj.AddComponent<CreatureAsset> () as CreatureAsset;
-		
-		return new_asset;
+
+    return new_asset;
 	}
 #endif
 
-	public CreatureAsset()
-	{
+  public CreatureAsset() {
 
-	}
+  }
 
-	public void ResetState () {
-		creatureJSON = null;
-		compressedCreatureJSON = null;
-		creature_manager = null;
-		is_dirty = false;
-	}
+  public void ResetState() {
+    creatureJSON = null;
+    compressedCreatureJSON = null;
+    creature_manager = null;
+    is_dirty = false;
+  }
 
-	public bool GetIsDirty()
-	{
-		return is_dirty;
-	}
+  public bool GetIsDirty() {
+    return is_dirty;
+  }
 
-	public void SetIsDirty(bool flag_in)
-	{
-		is_dirty = flag_in;
-	}
+  public void SetIsDirty(bool flag_in) {
+    is_dirty = flag_in;
+  }
 
-	public void SaveCompressedText(string filename, string text_in)
-	{
-	/*
-		byte[] text1 =   System.Text.Encoding.ASCII.GetBytes(text_in);
-		byte[] compressed = LZMAtools.CompressByteArrayToLZMAByteArray(text1);
-		File.WriteAllBytes (filename, compressed);
-	*/
-		Debug.LogWarning("This function is deprecated. Please use FlatBuffers Binary Format instead.");
-	}
+  public void SaveCompressedText(string filename, string text_in) {
+    /*
+      byte[] text1 =   System.Text.Encoding.ASCII.GetBytes(text_in);
+      byte[] compressed = LZMAtools.CompressByteArrayToLZMAByteArray(text1);
+      File.WriteAllBytes (filename, compressed);
+    */
+    Debug.LogWarning("This function is deprecated. Please use FlatBuffers Binary Format instead.");
+  }
 
-	public string DecodeCompressedBytes(byte[] bytes)
-	{
-	/*
-		byte[] decompressed = LZMAtools.DecompressLZMAByteArrayToByteArray (bytes);
-		return System.Text.Encoding.Default.GetString(decompressed);
-	*/
+  public string DecodeCompressedBytes(byte[] bytes) {
+    /*
+      byte[] decompressed = LZMAtools.DecompressLZMAByteArrayToByteArray (bytes);
+      return System.Text.Encoding.Default.GetString(decompressed);
+    */
 
-		Debug.LogWarning("This function is deprecated. Please use FlatBuffers Binary Format instead.");
-		return null;
-	}
+    Debug.LogWarning("This function is deprecated. Please use FlatBuffers Binary Format instead.");
+    return null;
+  }
 
-	public bool HasNoValidAsset()
-	{
-		bool regularCheck = !useCompressedAsset && !useFlatDataAsset && (creatureJSON == null);
-		bool compressedCheck = useCompressedAsset && (creatureJSON == null);
-		bool flatCheck = useFlatDataAsset && (flatCreatureData == null);
+  public bool HasNoValidAsset() {
+    bool regularCheck = !useCompressedAsset && !useFlatDataAsset && (creatureJSON == null);
+    bool compressedCheck = useCompressedAsset && (creatureJSON == null);
+    bool flatCheck = useFlatDataAsset && (flatCreatureData == null);
 
-		return regularCheck || compressedCheck || flatCheck;
-	}
+    return regularCheck || compressedCheck || flatCheck;
+  }
 
-	public string GetAssetString()
-	{
-		if (HasNoValidAsset ()) {
-			return null;
-		}
+  public string GetAssetString() {
+    if (HasNoValidAsset()) {
+      return null;
+    }
 
-		string readString = null;
-		if (useCompressedAsset) {
-			readString = DecodeCompressedBytes (compressedCreatureJSON.bytes);
-		} 
-		else {
-			readString = creatureJSON.text;
-		}
+    string readString = null;
+    if (useCompressedAsset) {
+      readString = DecodeCompressedBytes(compressedCreatureJSON.bytes);
+    } else {
+      readString = creatureJSON.text;
+    }
 
-		return readString;
-	}
+    return readString;
+  }
 
-	public Dictionary<string, object> LoadCreatureJsonData()
-	{
-		Dictionary<string, object> load_data = null;
+  public Dictionary<string, object> LoadCreatureJsonData() {
+    Dictionary<string, object> load_data = null;
 
-		if(useFlatDataAsset)
-		{
-			byte[] readBytes = flatCreatureData.bytes;
-			load_data = CreatureModule.Utils.LoadCreatureFlatDataFromBytes(readBytes);
-		}
-		else {
-			string readString = GetAssetString ();
-			load_data = CreatureModule.Utils.LoadCreatureJSONDataFromString (readString);
-		}
+    if (useFlatDataAsset) {
+      byte[] readBytes = flatCreatureData.bytes;
+      load_data = CreatureModule.Utils.LoadCreatureFlatDataFromBytes(readBytes);
+    } else {
+      string readString = GetAssetString();
+      load_data = CreatureModule.Utils.LoadCreatureJSONDataFromString(readString);
+    }
 
-		return load_data;
-	}
+    return load_data;
+  }
 
-	public CreatureManager GetCreatureManager()
-	{
-		if (HasNoValidAsset())
-		{
-			Debug.LogError("Input Creature JSON file not set for CreatureAsset: " + name, this);
-			ResetState ();
-			return null;
-		}
+  public CreatureManager GetCreatureManager() {
+    if (HasNoValidAsset()) {
+      Debug.LogError("Input Creature JSON file not set for CreatureAsset: " + name, this);
+      ResetState();
+      return null;
+    }
 
-		if (creature_manager != null) 
-		{
-			return creature_manager;
-		}
-			
-		Dictionary<string, object> load_data = LoadCreatureJsonData ();
+    if (creature_manager != null) {
+      return creature_manager;
+    }
 
-		CreatureModule.Creature new_creature = new CreatureModule.Creature(ref load_data);
-		creature_manager = new CreatureModule.CreatureManager (new_creature);
-		creature_manager.CreateAllAnimations (ref load_data);
+    Dictionary<string, object> load_data = LoadCreatureJsonData();
 
-		var all_animations = creature_manager.animations;
-		foreach (KeyValuePair<string, CreatureAnimationAssetData> entry in animation_clip_overides) 
-		{
-			var cur_name = entry.Key;
-			var cur_animation_data = entry.Value;
+    CreatureModule.Creature new_creature = new CreatureModule.Creature(ref load_data);
+    creature_manager = new CreatureModule.CreatureManager(new_creature);
+    creature_manager.CreateAllAnimations(ref load_data);
 
-			if(all_animations.ContainsKey(cur_name)) 
-			{
-				// Set Animation Frame Ranges
-				all_animations[cur_name].start_time = cur_animation_data.start_frame;
-				all_animations[cur_name].end_time = cur_animation_data.end_frame;
+    var all_animations = creature_manager.animations;
+    foreach (KeyValuePair<string, CreatureAnimationAssetData> entry in animation_clip_overides) {
+      var cur_name = entry.Key;
+      var cur_animation_data = entry.Value;
 
-				// Decide if we need to make point caches
-				if(cur_animation_data.make_point_cache)
-				{
-					var stopWatch = new System.Diagnostics.Stopwatch();
-					stopWatch.Start();
+      if (all_animations.ContainsKey(cur_name)) {
+        // Set Animation Frame Ranges
+        all_animations[cur_name].start_time = cur_animation_data.start_frame;
+        all_animations[cur_name].end_time = cur_animation_data.end_frame;
 
-					creature_manager.MakePointCache(cur_name, cur_animation_data.cache_approximation);
+        // Decide if we need to make point caches
+        if (cur_animation_data.make_point_cache) {
+          var stopWatch = new System.Diagnostics.Stopwatch();
+          stopWatch.Start();
 
-					stopWatch.Stop ();
-					Debug.Log ("Creature Point Cache generation took: " + stopWatch.ElapsedMilliseconds);
-				}
-			}
-		}
+          creature_manager.MakePointCache(cur_name, cur_animation_data.cache_approximation);
+
+          stopWatch.Stop();
+          Debug.Log("Creature Point Cache generation took: " + stopWatch.ElapsedMilliseconds);
+        }
+      }
+    }
 
 
 
-		is_dirty = true;
+    is_dirty = true;
 
-		// Load meta data if available
-		creature_meta_data = null;
-		if(creatureMetaJSON != null)
-		{
-			creature_meta_data = new CreatureMetaData();
-		 	CreatureModule.Utils.BuildCreatureMetaData(
-                creature_meta_data, 
-                creatureMetaJSON.text,
-                physics_assets,
-                skin_swap_names);
-		}
+    // Load meta data if available
+    creature_meta_data = null;
+    if (creatureMetaJSON != null) {
+      creature_meta_data = new CreatureMetaData();
+      CreatureModule.Utils.BuildCreatureMetaData(
+               creature_meta_data,
+               creatureMetaJSON.text,
+               physics_assets,
+               skin_swap_names);
+    }
 
-		return creature_manager;
-	}
+    return creature_manager;
+  }
 }
 
