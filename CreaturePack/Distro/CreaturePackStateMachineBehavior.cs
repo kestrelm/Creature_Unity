@@ -42,6 +42,9 @@ public class CreaturePackStateMachineBehavior : StateMachineBehaviour
     public string play_animation_name;
     public bool do_blending = false;
     public float blend_delta = 0.1f;
+    public bool custom_clip_range = false;
+    public int custom_start_frame = 0;
+    public int custom_end_frame = 100;
 
     override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
@@ -54,6 +57,34 @@ public class CreaturePackStateMachineBehavior : StateMachineBehaviour
         else
         {
             creature_renderer.pack_player.blendToAnimation(play_animation_name, blend_delta);
+        }
+
+        if(custom_clip_range)
+        {
+            var pack_data = creature_renderer.pack_player.data;
+            if(pack_data.animClipMap.ContainsKey(play_animation_name))
+            {
+                creature_renderer.pack_player.isLooping = false;
+                creature_renderer.pack_player.setRunTime(custom_start_frame);
+                animator.SetBool("CustomRangeDone", false);
+            }
+        }
+    }
+
+    override public void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
+    {
+        if(custom_clip_range && (custom_end_frame > custom_start_frame))
+        {
+            var curTransition = animator.GetAnimatorTransitionInfo(layerIndex);
+            var pack_player = pack_renderer.pack_player;
+            var cur_frame = pack_player.getRunTime();
+            if(cur_frame >= custom_end_frame)
+            {
+                // Please set a boolean in your animator transition condition called
+                // "CustomRangeDone" that will be the trigger for transitioning to a new
+                // animation clip
+                animator.SetBool("CustomRangeDone", true);
+            }
         }
     }
 
