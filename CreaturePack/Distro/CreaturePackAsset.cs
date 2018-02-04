@@ -44,12 +44,83 @@ using SimpleJSON;
 using UnityEditor;
 #endif
 
+public class CreatureCompositeClip
+{
+    public string name;
+    public int start_frame = 0;
+    public int end_frame = 0;
+    public CreatureCompositeClip(string name_in, int start_frame_in, int end_frame_in)
+    {
+        name = name_in;
+        start_frame = start_frame_in;
+        end_frame = end_frame_in;
+    }
+}
+
+public class CreatureCompositePlayer
+{
+    public string active_name;
+    public int active_idx = 0;
+    public Dictionary<String, List<CreatureCompositeClip>> composite_clips = null;
+
+    void setupForSubClip(CreaturePackPlayer pack_player, int idx, string anim_name)
+    {
+        if (composite_clips.ContainsKey(active_name))
+        {
+            var sublist = composite_clips[active_name];
+            pack_player.setActiveAnimation(sublist[idx].name);
+            pack_player.setRunTime(sublist[idx].start_frame);
+        }
+    }
+
+    // Returns whether the current composite clip is available
+    public bool hasCompositeName(string name_in)
+    {
+        return composite_clips.ContainsKey(name_in);
+    }
+
+    // Switches the animation to a new composite clip given its name
+    public void setActiveName(string name_in, bool force_reset, CreaturePackPlayer pack_player)
+    {
+        if((active_name == name_in) && (force_reset == false))
+        {
+            return;
+        }
+
+        active_name = name_in;
+        active_idx = 0;
+        
+        if(composite_clips.ContainsKey(active_name))
+        {
+            setupForSubClip(pack_player, active_idx, active_name);
+        }        
+    }
+
+    // Update the composite clip animation step
+    public void update(float delta_step, CreaturePackPlayer pack_player)
+    {
+        var pre_time = pack_player.getRunTime();
+        pack_player.isLooping = true;
+        pack_player.isPlaying = true;
+        pack_player.stepTime(delta_step);
+
+        var post_time = pack_player.getRunTime();
+        var sublist = composite_clips[active_name];
+
+        if ((post_time < pre_time) || (post_time > sublist[active_idx].end_frame))
+        {
+            active_idx = (active_idx + 1) % sublist.Count;
+            setupForSubClip(pack_player, active_idx, active_name);
+        }
+    }
+}
+
 public class CreaturePackAsset : MonoBehaviour {
     public TextAsset creaturePackBytes = null, creatureMetaJSON = null;
     private bool is_dirty = false;
     private CreaturePackLoader packData = null;
     public Dictionary<String, Vector2> anchor_points = null;
-
+    public CreatureCompositePlayer composite_player = null;
     public CreaturePackAsset()
     {
         ResetState();
@@ -93,27 +164,52 @@ public class CreaturePackAsset : MonoBehaviour {
 
     public void LoadMetaData()
     {
-        if(!creatureMetaJSON)
+        if (!creatureMetaJSON)
         {
             return;
         }
 
-        if(anchor_points != null)
+        var readJSON = JSON.Parse(creatureMetaJSON.text);
+        // Load Anchor Points
+        if (anchor_points != null)
         {
             return;
         }
 
         anchor_points = new Dictionary<String, Vector2>();
-        var readJSON = JSON.Parse(creatureMetaJSON.text);
-        if(readJSON.HasKey("AnchorPoints"))
+        if (readJSON.HasKey("AnchorPoints"))
         {
             var readAnchors = readJSON["AnchorPoints"]["anchors"];
-            for(int i = 0; i < readAnchors.Count; i++)
+            for (int i = 0; i < readAnchors.Count; i++)
             {
                 var readData = readAnchors[i];
                 var readName = readData["name"];
                 var readPt = readData["point"];
                 anchor_points[readName] = new Vector2(readPt[0].AsFloat, readPt[1].AsFloat);
+            }
+        }
+
+        // Load Composite Clips
+        if (readJSON.HasKey("CompositeClips"))
+        {
+            composite_player = new CreatureCompositePlayer();
+            composite_player.composite_clips = new Dictionary<string, List<CreatureCompositeClip>>();
+            var readCompClips = readJSON["CompositeClips"];
+            foreach (var subkey in readCompClips.Keys)
+            {
+                List<CreatureCompositeClip> write_list = new List<CreatureCompositeClip>();
+                var subname = subkey.Value;
+                var sublist = readCompClips[subname];
+                for (int j = 0; j < sublist.Count; j++)
+                {
+                    var cur_name = sublist[j]["clip"].Value;
+                    var start_frame = sublist[j]["start"].AsInt;
+                    var end_frame = sublist[j]["end"].AsInt;
+
+                    write_list.Add(new CreatureCompositeClip(cur_name, start_frame, end_frame));
+                }
+
+                composite_player.composite_clips[subname] = write_list;
             }
         }
     }

@@ -90,7 +90,6 @@ public class CreaturePackAssetInspector : Editor
                 CreateStateMachine();
             }
         }
-
     }
 
     public void CreateStateMachine()

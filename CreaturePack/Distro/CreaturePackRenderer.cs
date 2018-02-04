@@ -66,6 +66,8 @@ public class CreaturePackRenderer : MonoBehaviour {
     public bool counter_clockwise = false;
     public bool use_anchor_pts = false;
     public string anchor_pts_anim = "";
+    public bool use_composite_clips = false;
+    public string composite_anim = "";
 
     private Mesh createMesh()
     {
@@ -116,9 +118,17 @@ public class CreaturePackRenderer : MonoBehaviour {
             pack_player = new CreaturePackPlayer(pack_loader);
             pack_player.setActiveAnimation(active_animation_name);
 
-            if(use_anchor_pts)
+        }
+
+        if(pack_asset != null && pack_player != null)
+        {
+            if (use_anchor_pts || use_composite_clips)
             {
                 pack_asset.LoadMetaData();
+                if (pack_asset.composite_player != null)
+                {
+                    pack_asset.composite_player.setActiveName(composite_anim, true, pack_player);
+                }
             }
         }
     }
@@ -276,8 +286,18 @@ public class CreaturePackRenderer : MonoBehaviour {
         active_mesh.uv = uvs;
     }
 
+    public bool compositeClipActive()
+    {
+        return use_composite_clips && (pack_asset.composite_player != null);
+    }
+
     public void UpdateTime()
     {
+        if(use_composite_clips && (pack_asset.composite_player == null))
+        {
+            pack_asset.LoadMetaData();
+        }
+
         if (active_animation_name == null || active_animation_name.Length == 0)
         {
             active_animation_name = pack_player.data.GetFirstAnimClipName();
@@ -290,9 +310,21 @@ public class CreaturePackRenderer : MonoBehaviour {
             time_delta = 0.0f;
         }
 
-        pack_player.isLooping = should_loop;
-        pack_player.isPlaying = true;
-        pack_player.stepTime(time_delta);
+        if(compositeClipActive())
+        {
+            var comp_data = pack_asset.composite_player.composite_clips;
+            if(comp_data.ContainsKey(composite_anim))
+            {
+                pack_asset.composite_player.update(time_delta, pack_player);
+            }
+        }
+        else
+        {
+            pack_player.isLooping = should_loop;
+            pack_player.isPlaying = true;
+            pack_player.stepTime(time_delta);
+        }
+
         pack_player.syncRenderData();
     }
 
