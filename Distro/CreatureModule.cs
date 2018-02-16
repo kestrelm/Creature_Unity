@@ -363,7 +363,7 @@ namespace CreatureModule
             {
                 var all_clips = manager_in.GetAllAnimations();
                 morph_data.play_anims_data = new List<Tuple<string, float>>();
-                for (int i = 0; i < morph_data.play_anims_data.Count; i++)
+                for (int i = 0; i < morph_data.morph_clips.Count; i++)
                 {
                     var cur_clip_name = morph_data.morph_clips[i].Item1;
                     var cur_start_time = all_clips[cur_clip_name].start_time;
@@ -1017,7 +1017,7 @@ namespace CreatureModule
                 {
                     var cur_array = (System.Object[])cur_shape_data;
                     var cur_clip = (String)cur_array[0];
-                    var pts_array = (System.Object[])cur_array[1];
+                    var pts_array = (Double[])cur_array[1];
                     var cur_pt = new UnityEngine.Vector2(Convert.ToSingle(pts_array[0]), Convert.ToSingle(pts_array[1]));
                     meta_data.morph_data.bounds_min.x = Math.Min(meta_data.morph_data.bounds_min.x, cur_pt.y);
                     meta_data.morph_data.bounds_max.x = Math.Max(meta_data.morph_data.bounds_max.x, cur_pt.y);
@@ -1031,8 +1031,10 @@ namespace CreatureModule
                 meta_data.morph_data.morph_res = Convert.ToInt32(json_dict["MorphRes"]);
                 {
                     // Transform to Image space
-                    foreach(var cur_clip in meta_data.morph_data.morph_clips)
+                    for(int j = 0; j < meta_data.morph_data.morph_clips.Count; j++)
                     {
+                        var cur_clip = meta_data.morph_data.morph_clips[j];
+                        var cur_name = cur_clip.Item1;
                         var bounds_size = meta_data.morph_data.bounds_max - meta_data.morph_data.bounds_min;
                         var cur_pt = cur_clip.Item2;
                         cur_pt = (cur_pt - meta_data.morph_data.bounds_min);
@@ -1041,6 +1043,9 @@ namespace CreatureModule
 
                         cur_pt.x = Math.Min(Math.Max(0.0f, cur_pt.x), (float)(meta_data.morph_data.morph_res - 1));
                         cur_pt.y = Math.Min(Math.Max(0.0f, cur_pt.y), (float)(meta_data.morph_data.morph_res - 1));
+
+                        meta_data.morph_data.morph_clips[j] =
+                            new Tuple<string, UnityEngine.Vector2>(cur_name, cur_pt);
                     }
                 }
 

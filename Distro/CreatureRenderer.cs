@@ -296,7 +296,7 @@ public class CreatureRenderer : MonoBehaviour
             game_controller,
             creature_asset.creature_meta_data,
             active_animation_name,
-            local_time_scale,
+            real_time_scale,
             region_offsets_z,
             should_loop,
             ref local_time);

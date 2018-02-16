@@ -292,7 +292,20 @@ public class CreatureAssetInspector : Editor {
                 EditorGUILayout.EndHorizontal();
             }
         }
-	}
+
+        if(creature_asset.morph_poses.Count > 0)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Morph Target Poses", EditorStyles.boldLabel);
+            foreach (var cur_pose_name in creature_asset.morph_poses)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField(cur_pose_name, GUILayout.MaxWidth(100));
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+    }
 
     public void RunLiveSync()
     {
