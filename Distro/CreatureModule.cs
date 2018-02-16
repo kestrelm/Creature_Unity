@@ -52,6 +52,27 @@ namespace CreatureModule
         public Dictionary<String, HashSet<String>> skin_swaps;
         public HashSet<int> active_skin_swap_ids;
 
+        public class MorphData
+        {
+            public List<byte[]> morph_spaces = new List<byte[]>();
+            public String center_clip;
+            public List<Tuple<String, UnityEngine.Vector2>> morph_clips = new List<Tuple<string, UnityEngine.Vector2>>();
+            public float[] weights;
+            public UnityEngine.Vector2 bounds_min, bounds_max;
+            public int morph_res;
+            public List<Tuple<String, float>> play_anims_data = new List<Tuple<string, float>>();
+            public Tuple<String, float> play_center_anim_data;
+            public List<float> play_pts = new List<float>();
+            public UnityEngine.Vector2 play_img_pt;
+
+            public bool isValid()
+            {
+                return (morph_spaces.Count > 0);
+            }
+        }
+
+        public MorphData morph_data = new MorphData();
+
         public CreatureMetaData()
         {
             mesh_map = new Dictionary<int, Tuple<int, int>>();
@@ -239,6 +260,172 @@ namespace CreatureModule
             return null;
         }
 
+        public float morphSampleFilterPt(
+            float q11, // (x1, y1)
+            float q12, // (x1, y2)
+            float q21, // (x2, y1)
+            float q22, // (x2, y2)
+            float x1,
+            float y1,
+            float x2,
+            float y2,
+            float x,
+            float y)
+        {
+            float x2x1, y2y1, x2x, y2y, yy1, xx1;
+            x2x1 = x2 - x1;
+            y2y1 = y2 - y1;
+            x2x = x2 - x;
+            y2y = y2 - y;
+            yy1 = y - y1;
+            xx1 = x - x1;
+
+            float denom = (x2x1 * y2y1);
+            float numerator = (
+                q11 * x2x * y2y +
+                q21 * xx1 * y2y +
+                q12 * x2x * yy1 +
+                q22 * xx1 * yy1
+                );
+
+            return (denom == 0) ? q11 : (1.0f / denom * numerator);
+        }
+
+        public float morphLookupVal(int x_in, int y_in, int idx)
+        {
+            var cur_space = morph_data.morph_spaces[idx];
+            return (float)(cur_space[y_in * morph_data.morph_res + x_in]) / 255.0f;
+        }
+
+        public void computeMorphWeights(UnityEngine.Vector2 img_pt)
+        {
+            morph_data.play_img_pt = img_pt;
+            float x1 = (float)Math.Floor(img_pt.x);
+            float y1 = (float)Math.Floor(img_pt.y);
+            float x2 = (float)Math.Ceiling(img_pt.x);
+            float y2 = (float)Math.Ceiling(img_pt.y);
+
+            for (int i = 0; i < morph_data.morph_spaces.Count; i++)
+            {
+                float q11 = (float)morphLookupVal((int)x1, (int)y1, i); // (x1, y1)
+                float q12 = (float)morphLookupVal((int)x1, (int)y2, i); // (x1, y2)
+                float q21 = (float)morphLookupVal((int)x2, (int)y1, i); // (x2, y1)
+                float q22 = (float)morphLookupVal((int)x2, (int)y2, i); // (x2, y2)
+
+                float sample_val = morphSampleFilterPt(
+                    q11, q12, q21, q22, x1, y1, x2, y2, img_pt.x, img_pt.y);
+                morph_data.weights[i] = sample_val;
+            }
+        }
+
+        public void computeMorphWeightsNormalised(UnityEngine.Vector2 normal_pt)
+	    {
+            var img_pt = normal_pt;
+            img_pt.x *= morph_data.morph_res - 1;
+            img_pt.y *= morph_data.morph_res - 1;
+
+            img_pt.x = Math.Max(Math.Min((float)morph_data.morph_res - 1.0f, img_pt.x), 0.0f);
+		    img_pt.y = Math.Max(Math.Min((float)morph_data.morph_res - 1.0f, img_pt.y), 0.0f);
+
+            computeMorphWeights(img_pt);
+        }
+
+        public void computeMorphWeightsWorld(UnityEngine.Vector2 world_pt, UnityEngine.Vector2 base_pt, float radius)
+        {
+            var rel_pt = world_pt - base_pt;
+            var cur_length = rel_pt.magnitude;
+            if (cur_length > radius)
+            {
+                rel_pt.Normalize();
+                rel_pt *= radius;
+            }
+
+            var normal_pt = (rel_pt + (new UnityEngine.Vector2(radius, radius))) / (radius * 2.0f);
+            computeMorphWeightsNormalised(normal_pt);
+        }
+
+        public void updateMorphPoints(Creature creature_in, float ratio_in)
+        {
+            var render_pts = morph_data.play_pts;
+            for (int j = 0; j < creature_in.total_num_pts * 3; j += 3)
+            {
+                render_pts[j] +=
+                    (creature_in.render_pts[j] * ratio_in);
+                render_pts[j + 1] +=
+                    (creature_in.render_pts[j + 1] * ratio_in);
+            }
+        }
+
+        public void updateMorphStep(CreatureManager manager_in, float delta_step)
+        {
+            var creature_in = manager_in.GetCreature();
+            if (morph_data.play_anims_data.Count == 0)
+            {
+                var all_clips = manager_in.GetAllAnimations();
+                morph_data.play_anims_data = new List<Tuple<string, float>>();
+                for (int i = 0; i < morph_data.play_anims_data.Count; i++)
+                {
+                    var cur_clip_name = morph_data.morph_clips[i].Item1;
+                    var cur_start_time = all_clips[cur_clip_name].start_time;
+                    var cur_play_data = new Tuple<string, float>(cur_clip_name, cur_start_time);
+                    morph_data.play_anims_data.Add(cur_play_data);
+                }
+
+                if (morph_data.center_clip.Length > 0)
+                {
+                    var center_clip_name = morph_data.center_clip;
+                    var center_start_time = all_clips[center_clip_name].start_time;
+                    morph_data.play_center_anim_data = new Tuple<string, float>(center_clip_name, center_start_time);
+                }
+
+                morph_data.play_pts = new List<float>(new float[creature_in.total_num_pts * 3]);
+            }
+
+            for(int i = 0; i < morph_data.play_pts.Count; i++)
+            {
+                morph_data.play_pts[i] = 0;
+            }
+
+            float center_ratio = 0;
+            bool has_center = (morph_data.center_clip.Length > 0);
+            if (has_center)
+            {
+                var radius = (float)morph_data.morph_res * 0.5f;
+                var test_pt = morph_data.play_img_pt - (new UnityEngine.Vector2(morph_data.morph_res / 2, morph_data.morph_res / 2));
+                center_ratio = (test_pt / ((float)morph_data.morph_res * 0.5f)).magnitude;
+
+                var clip_name = morph_data.play_center_anim_data.Item1;
+                manager_in.SetActiveAnimationName(clip_name);
+                manager_in.setRunTime(morph_data.play_center_anim_data.Item2);
+                manager_in.Update(delta_step);
+
+                float inv_center_ratio = 1.0f - center_ratio;
+                updateMorphPoints(creature_in, inv_center_ratio);
+                morph_data.play_center_anim_data = 
+                    new Tuple<string, float>(clip_name, manager_in.getRunTime());
+            }
+
+            for (int i = 0; i < morph_data.play_anims_data.Count; i++)
+            {
+                var cur_data = morph_data.play_anims_data[i];
+                var clip_name = cur_data.Item1;
+                manager_in.SetActiveAnimationName(clip_name);
+                manager_in.setRunTime(cur_data.Item2);
+                manager_in.Update(delta_step);
+
+                morph_data.play_anims_data[i] = 
+                    new Tuple<string, float>(clip_name, manager_in.getRunTime());
+                updateMorphPoints(
+                    creature_in,
+                    (center_ratio > 0) ? (morph_data.weights[i] * center_ratio) : morph_data.weights[i]);
+            }
+
+            // Copy to current render points
+            for(int i = 0; i < morph_data.play_pts.Count; i++)
+            {
+                creature_in.render_pts[i] = morph_data.play_pts[i];
+            }
+        }
     }
 
     public class CreaturePhysicsData
@@ -676,10 +863,11 @@ namespace CreatureModule
         }
 
         public static void BuildCreatureMetaData(
-            CreatureMetaData meta_data, 
+            CreatureMetaData meta_data,
             string json_text_in,
             List<CreaturePhysicsData.BendPhysicsChain> physics_assets,
-            List<String> skin_swap_names)
+            List<String> skin_swap_names,
+            List<String> morph_poses)
         {
             meta_data.clear();
             var json_dict = JsonFx.Json.JsonReader.Deserialize(json_text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
@@ -746,16 +934,16 @@ namespace CreatureModule
 
             // Skin Swaps
             skin_swap_names.Clear();
-            if(json_dict.ContainsKey("skinSwapList"))
+            if (json_dict.ContainsKey("skinSwapList"))
             {
                 var skin_swap_obj = (Dictionary<string, object>)json_dict["skinSwapList"];
-                foreach(var cur_data in skin_swap_obj)
+                foreach (var cur_data in skin_swap_obj)
                 {
                     var swap_name = cur_data.Key;
                     var swap_data = (Dictionary<string, object>)((Dictionary<string, object>)cur_data.Value)["swap"];
                     var swap_items = (System.Object[])swap_data["swap_items"];
                     HashSet<String> swap_set = new HashSet<string>();
-                    foreach(var cur_item in swap_items)
+                    foreach (var cur_item in swap_items)
                     {
                         swap_set.Add((String)cur_item);
                     }
@@ -766,19 +954,19 @@ namespace CreatureModule
             }
 
             // Physics Data
-            if(json_dict.ContainsKey("physicsData"))
+            if (json_dict.ContainsKey("physicsData"))
             {
-                CreaturePhysicsData.BendPhysicsChain[] old_physics_assets = 
+                CreaturePhysicsData.BendPhysicsChain[] old_physics_assets =
                     new CreaturePhysicsData.BendPhysicsChain[physics_assets.Count];
                 physics_assets.CopyTo(old_physics_assets);
                 physics_assets.Clear();
 
                 var physics_obj = (Dictionary<string, object>)json_dict["physicsData"];
-                foreach(var cur_data in physics_obj)
+                foreach (var cur_data in physics_obj)
                 {
                     var cur_anim_name = cur_data.Key;
                     var motor_objs = (Dictionary<string, object>)cur_data.Value;
-                    foreach(var cur_motor in motor_objs)
+                    foreach (var cur_motor in motor_objs)
                     {
                         var motor_name = cur_motor.Key;
                         var bone_objs = (System.Object[])cur_motor.Value;
@@ -787,15 +975,15 @@ namespace CreatureModule
                         new_chain.anim_clip_name = cur_anim_name;
                         new_chain.num_bones = bone_objs.Length;
 
-                        foreach(var cur_bone in bone_objs)
+                        foreach (var cur_bone in bone_objs)
                         {
                             var bone_name = (string)cur_bone;
                             new_chain.bone_names.Add(bone_name);
                         }
 
-                        foreach(var old_chain in old_physics_assets)
+                        foreach (var old_chain in old_physics_assets)
                         {
-                            if((old_chain.anim_clip_name == cur_anim_name)
+                            if ((old_chain.anim_clip_name == cur_anim_name)
                                 && (old_chain.motor_name == motor_name))
                             {
                                 new_chain.active = old_chain.active;
@@ -808,7 +996,71 @@ namespace CreatureModule
                     }
                 }
             }
-        }
+
+            // Morph Spaces
+            if (json_dict.ContainsKey("MorphTargets")
+                && json_dict.ContainsKey("MorphRes") 
+                && json_dict.ContainsKey("MorphSpace"))
+            {
+
+                morph_poses.Clear();
+                var morph_obj = (Dictionary<string, object>)json_dict["MorphTargets"];
+
+                var morph_center_array = (System.Object[])morph_obj["CenterData"];
+                meta_data.morph_data.center_clip = (string)morph_center_array[1];
+                morph_poses.Add(meta_data.morph_data.center_clip);
+
+                var morph_shapes_array = (System.Object[])morph_obj["MorphShape"];
+                meta_data.morph_data.bounds_min = new UnityEngine.Vector2(Single.MaxValue, Single.MaxValue);
+                meta_data.morph_data.bounds_max = new UnityEngine.Vector2(Single.MinValue, Single.MinValue);
+                foreach(var cur_shape_data in morph_shapes_array)
+                {
+                    var cur_array = (System.Object[])cur_shape_data;
+                    var cur_clip = (String)cur_array[0];
+                    var pts_array = (System.Object[])cur_array[1];
+                    var cur_pt = new UnityEngine.Vector2(Convert.ToSingle(pts_array[0]), Convert.ToSingle(pts_array[1]));
+                    meta_data.morph_data.bounds_min.x = Math.Min(meta_data.morph_data.bounds_min.x, cur_pt.y);
+                    meta_data.morph_data.bounds_max.x = Math.Max(meta_data.morph_data.bounds_max.x, cur_pt.y);
+                    meta_data.morph_data.bounds_min.y = Math.Min(meta_data.morph_data.bounds_min.x, cur_pt.y);
+                    meta_data.morph_data.bounds_max.y = Math.Max(meta_data.morph_data.bounds_max.x, cur_pt.y);
+
+                    meta_data.morph_data.morph_clips.Add(new Tuple<String, UnityEngine.Vector2>(cur_clip, cur_pt));
+                    morph_poses.Add(cur_clip);
+                }
+
+                meta_data.morph_data.morph_res = Convert.ToInt32(json_dict["MorphRes"]);
+                {
+                    // Transform to Image space
+                    foreach(var cur_clip in meta_data.morph_data.morph_clips)
+                    {
+                        var bounds_size = meta_data.morph_data.bounds_max - meta_data.morph_data.bounds_min;
+                        var cur_pt = cur_clip.Item2;
+                        cur_pt = (cur_pt - meta_data.morph_data.bounds_min);
+                        cur_pt.x /= bounds_size.x; cur_pt.y /= bounds_size.y;
+                        cur_pt *= (float)(meta_data.morph_data.morph_res - 1);
+
+                        cur_pt.x = Math.Min(Math.Max(0.0f, cur_pt.x), (float)(meta_data.morph_data.morph_res - 1));
+                        cur_pt.y = Math.Min(Math.Max(0.0f, cur_pt.y), (float)(meta_data.morph_data.morph_res - 1));
+                    }
+                }
+
+
+                var raw_str = (String)json_dict["MorphSpace"];
+                var raw_bytes = Convert.FromBase64String(raw_str);
+                for (int j = 0; j < morph_shapes_array.Length; j++)
+                {
+                    int space_size = meta_data.morph_data.morph_res * meta_data.morph_data.morph_res;
+                    int byte_idx = j * space_size;
+                    byte[] space_data = new byte[space_size];
+
+                    Array.Copy(raw_bytes, byte_idx, space_data, 0, space_size);
+                    meta_data.morph_data.morph_spaces.Add(space_data);
+                }
+
+                meta_data.morph_data.weights = new float[morph_shapes_array.Length];
+            }
+
+    }
 
         public static float[] getFloatArray(System.Object raw_data)
         {

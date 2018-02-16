@@ -234,6 +234,7 @@ namespace CreatureModule
         public static void UpdateTime(
             CreatureManager creature_manager, 
             CreatureGameController game_controller,
+            CreatureMetaData meta_data,
             string active_animation_name,
             float local_time_scale,
             float region_offsets_z,
@@ -245,12 +246,30 @@ namespace CreatureModule
                 return;
             }
 
+            bool morph_targets_valid = false;
+            if (game_controller != null) {
+                if ((meta_data != null) && game_controller.morph_targets_active)
+                {
+                    morph_targets_valid = meta_data.morph_data.isValid();
+                }
+            }
+
             var old_time = creature_manager.getActualRuntime();
             float time_delta = (Time.deltaTime * local_time_scale);
 
             creature_manager.region_offsets_z = region_offsets_z;
             creature_manager.should_loop = should_loop;
-            creature_manager.Update(time_delta);
+
+            if(morph_targets_valid)
+            {
+                game_controller.computeMorphTargetsPt();
+                meta_data.updateMorphStep(creature_manager, time_delta);
+            }
+            else
+            {
+                creature_manager.Update(time_delta);
+            }
+
             local_time = creature_manager.getActualRuntime();
 
             bool reached_anim_end = false;

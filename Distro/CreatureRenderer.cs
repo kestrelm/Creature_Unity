@@ -290,9 +290,11 @@ public class CreatureRenderer : MonoBehaviour
 
 	public void UpdateTime()
 	{
+        float real_time_scale = Application.isPlaying ? local_time_scale : 0.0f;
         CreatureRenderModule.UpdateTime(
             creature_manager,
             game_controller,
+            creature_asset.creature_meta_data,
             active_animation_name,
             local_time_scale,
             region_offsets_z,

@@ -208,6 +208,9 @@ public class CreatureGameController : MonoBehaviour
     List<MeshBone> runtime_bones;
     public bool ik_on = false;
     public List<CreatureIKPacket> ik_packets;
+    public bool morph_targets_active = false;
+    public Transform morph_target_xform, morph_base_xform;
+    public float morph_radius = 1.0f;
 
     public CreatureGameAgent customAgent;
 
@@ -597,6 +600,34 @@ public class CreatureGameController : MonoBehaviour
 
             i++;
         }
+    }
+
+    public void computeMorphTargetsPt()
+    {
+        if((morph_targets_active == false) 
+            || (morph_target_xform == null)
+            || (morph_base_xform == null))
+        {
+            return;
+        }
+
+        var meta_asset = creature_renderer.creature_asset.creature_meta_data;
+        if (meta_asset == null)
+        {
+            return;
+        }
+
+        var base_pt = morph_base_xform.position;
+        var parent_xform = creature_renderer.transform;
+        var char_base_pos = parent_xform.InverseTransformPoint(base_pt);
+        var char_pt_pos = parent_xform.InverseTransformPoint(morph_target_xform.position);
+        var radius = 1.0f / ((parent_xform.localScale.x + parent_xform.localScale.y) * 0.5f) * morph_radius;
+
+        meta_asset.computeMorphWeightsWorld(
+                new UnityEngine.Vector2(char_pt_pos.x, -char_pt_pos.y),
+                new UnityEngine.Vector2(char_base_pos.x, -char_base_pos.y),
+                radius
+            );
     }
 
     private void MainUpdateBonesToCustomPositions(Dictionary<string, MeshBoneUtil.MeshBone> bones_map)
