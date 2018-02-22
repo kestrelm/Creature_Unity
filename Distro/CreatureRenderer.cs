@@ -73,9 +73,10 @@ public class CreatureRenderer : MonoBehaviour
 	public bool should_loop;
 	public bool counter_clockwise = false;
     public Dictionary<string, CreatureBoneData> feedback_bones;
+    public Dictionary<string, float> custom_speeds;
 
 #if UNITY_EDITOR
-	[MenuItem("GameObject/Creature/CreatureRenderer")]
+    [MenuItem("GameObject/Creature/CreatureRenderer")]
 	static CreatureRenderer CreateRenderer()
 	{
 		GameObject newObj = new GameObject();
@@ -92,6 +93,7 @@ public class CreatureRenderer : MonoBehaviour
 		local_time_scale = 2.0f;
 		region_offsets_z = 0.01f;
         feedback_bones = new Dictionary<string, CreatureBoneData>();
+        custom_speeds = new Dictionary<string, float>();
     }
 	
 	public virtual void Reset()
@@ -145,6 +147,12 @@ public class CreatureRenderer : MonoBehaviour
 		Reset ();
 		InitData ();
 	}
+
+    // Sets a custom speed override for a specific animation
+    public void SetCustomSpeed(string animation_name, float speed)
+    {
+        custom_speeds[animation_name] = speed;
+    }
 
 	// Sets the animation to the specified animation clip name
 	public void SetActiveAnimation(string animation_name, bool already_active_check=false)
@@ -291,6 +299,15 @@ public class CreatureRenderer : MonoBehaviour
 	public void UpdateTime()
 	{
         float real_time_scale = Application.isPlaying ? local_time_scale : 0.0f;
+        if(custom_speeds.Count > 0)
+        {
+            var cur_animation_name = creature_manager.GetActiveAnimationName();
+            if (custom_speeds.ContainsKey(cur_animation_name))
+            {
+                real_time_scale = Application.isPlaying ? custom_speeds[cur_animation_name] : 0.0f;
+            }
+        }
+
         CreatureRenderModule.UpdateTime(
             creature_manager,
             game_controller,
