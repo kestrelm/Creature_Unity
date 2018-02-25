@@ -44,6 +44,7 @@ public class CreaturePackAssetInspector : Editor
                 if (jsonAsset.bytes.Length > 0)
                 {
                     packAsset.creatureMetaJSON = jsonAsset;
+                    packAsset.LoadMetaData();
                 }
             }
         }
@@ -68,6 +69,8 @@ public class CreaturePackAssetInspector : Editor
                 UpdateDate();
             }
 
+            EditorGUILayout.LabelField("Animations", EditorStyles.boldLabel, GUILayout.MaxHeight(20));
+
             var loaderData = packAsset.GetCreaturePackLoader();
             foreach(var curClip in loaderData.animClipMap)
             {
@@ -83,6 +86,34 @@ public class CreaturePackAssetInspector : Editor
 
 
                 EditorGUILayout.EndVertical();
+            }
+
+            if(packAsset.anchor_points != null)
+            {
+                EditorGUILayout.LabelField("Anchor Points", EditorStyles.boldLabel, GUILayout.MaxHeight(20));
+                foreach (var anchor_data in packAsset.anchor_points)
+                {
+                    EditorGUILayout.BeginVertical(GUILayout.MaxHeight(20));
+                    EditorGUILayout.LabelField(anchor_data.Key,
+                                        GUILayout.MaxHeight(20));
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            var metaData = packAsset.meta_data;
+            if (metaData != null)
+            {
+                if (metaData.skin_swaps != null)
+                {
+                    EditorGUILayout.LabelField("Skin Swaps", EditorStyles.boldLabel, GUILayout.MaxHeight(20));
+                    foreach (var swap_data in metaData.skin_swaps)
+                    {
+                        EditorGUILayout.BeginVertical(GUILayout.MaxHeight(20));
+                        EditorGUILayout.LabelField(swap_data.Key,
+                                            GUILayout.MaxHeight(20));
+                        EditorGUILayout.EndVertical();
+                    }
+                }
             }
 
             if (GUILayout.Button("Build State Machine"))

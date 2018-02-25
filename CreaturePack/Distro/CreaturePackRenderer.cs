@@ -55,6 +55,8 @@ public class CreaturePackRenderer : MonoBehaviour {
     private Vector2[] uvs;
 
     private int[] triangles;
+    private int[] skin_swap_triangles;
+    private List<int> skin_swap_indices = new List<int>();
     private bool swap_mesh;
     public float local_time_scale;
     public CreaturePackAsset pack_asset;
@@ -68,6 +70,11 @@ public class CreaturePackRenderer : MonoBehaviour {
     public string anchor_pts_anim = "";
     public bool use_composite_clips = false;
     public string composite_anim = "";
+
+    public bool use_skin_swap = false;
+    private string prev_skin_swap = "";
+    private bool skin_swap_valid = false;
+    public string skin_swap = "";
 
     private Mesh createMesh()
     {
@@ -122,7 +129,7 @@ public class CreaturePackRenderer : MonoBehaviour {
 
         if(pack_asset != null && pack_player != null)
         {
-            if (use_anchor_pts || use_composite_clips)
+            if (use_anchor_pts || use_composite_clips || use_skin_swap)
             {
                 pack_asset.LoadMetaData();
                 if (pack_asset.composite_player != null)
@@ -131,6 +138,28 @@ public class CreaturePackRenderer : MonoBehaviour {
                 }
             }
         }
+    }
+
+    private bool reloadSkinSwap()
+    {
+        if(pack_asset.meta_data == null)
+        {
+            return false;
+        }
+
+        var retval = pack_asset.meta_data.buildSkinSwapIndices(
+            skin_swap,
+            pack_player.data.indices, 
+            skin_swap_indices);
+
+        if(!retval)
+        {
+            skin_swap_indices.Clear();
+        }
+
+        prev_skin_swap = skin_swap;
+        skin_swap_valid = true;
+        return true;
     }
 
     // Use this for initialization
@@ -235,11 +264,6 @@ public class CreaturePackRenderer : MonoBehaviour {
 
         if (use_anchor_pts)
         {
-            if(pack_asset.anchor_points == null)
-            {
-                pack_asset.LoadMetaData();
-            }
-
             if (pack_asset.anchor_points != null)
             {
                 string cur_anchor_anim = pack_player.activeAnimationName;
@@ -260,27 +284,54 @@ public class CreaturePackRenderer : MonoBehaviour {
             }
         }
 
+        // Process indices
+        if((skin_swap != prev_skin_swap) && use_skin_swap)
+        {
+            reloadSkinSwap();
+            skin_swap_triangles = new int[skin_swap_indices.Count];
+        }
+        bool perform_skin_swap = skin_swap_valid && use_skin_swap;
+
         if (!counter_clockwise)
         {
-            for (int i = 0; i < total_num_indices; i++)
+            if (perform_skin_swap)
             {
-                triangles[i] = (int)render_indices[i];
+                skin_swap_indices.CopyTo(skin_swap_triangles, 0);
+            }
+            else
+            {
+                for (int i = 0; i < total_num_indices; i++)
+                {
+                    triangles[i] = (int)render_indices[i];
+                }
             }
         }
         else
         {
-            for (int i = 0; i < total_num_indices; i += 3)
+            if (perform_skin_swap)
             {
-                triangles[i] = (int)render_indices[i];
-                triangles[i + 1] = (int)render_indices[i + 2];
-                triangles[i + 2] = (int)render_indices[i + 1];
+                for(int i = 0; i < skin_swap_indices.Count; i+=3)
+                {
+                    skin_swap_triangles[i] = skin_swap_indices[i];
+                    skin_swap_triangles[i + 1] = skin_swap_indices[i + 2];
+                    skin_swap_triangles[i + 2] = skin_swap_indices[i + 1];
+                }
+            }
+            else
+            {
+                for (int i = 0; i < total_num_indices; i += 3)
+                {
+                    triangles[i] = (int)render_indices[i];
+                    triangles[i + 1] = (int)render_indices[i + 2];
+                    triangles[i + 2] = (int)render_indices[i + 1];
+                }
             }
         }
 
 
         active_mesh.vertices = vertices;
         active_mesh.colors32 = colors;
-        active_mesh.triangles = triangles;
+        active_mesh.triangles = perform_skin_swap ? skin_swap_triangles : triangles;
         active_mesh.normals = normals;
         active_mesh.tangents = tangents;
         active_mesh.uv = uvs;
@@ -293,18 +344,13 @@ public class CreaturePackRenderer : MonoBehaviour {
 
     public void UpdateTime()
     {
-        if(use_composite_clips && (pack_asset.composite_player == null))
-        {
-            pack_asset.LoadMetaData();
-        }
-
         if (active_animation_name == null || active_animation_name.Length == 0)
         {
             active_animation_name = pack_player.data.GetFirstAnimClipName();
         }
 
-
-        float time_delta = (Time.deltaTime * local_time_scale);
+        float real_time_scale = Application.isPlaying ? local_time_scale : 0.0f;
+        float time_delta = (Time.deltaTime * real_time_scale);
         if(!should_play)
         {
             time_delta = 0.0f;

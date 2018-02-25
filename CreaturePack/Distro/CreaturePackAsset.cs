@@ -44,6 +44,84 @@ using SimpleJSON;
 using UnityEditor;
 #endif
 
+namespace CreaturePackUtils
+{
+    public sealed class Tuple<T1, T2>
+    {
+        private readonly T1 item1;
+        private readonly T2 item2;
+
+        /// <summary>
+        /// Retyurns the first element of the tuple
+        /// </summary>
+        public T1 Item1
+        {
+            get { return item1; }
+        }
+
+        /// <summary>
+        /// Returns the second element of the tuple
+        /// </summary>
+        public T2 Item2
+        {
+            get { return item2; }
+        }
+
+        /// <summary>
+        /// Create a new tuple value
+        /// </summary>
+        /// <param name="item1">First element of the tuple</param>
+        /// <param name="second">Second element of the tuple</param>
+        public Tuple(T1 item1, T2 item2)
+        {
+            this.item1 = item1;
+            this.item2 = item2;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("Tuple({0}, {1})", Item1, Item2);
+        }
+
+        public override int GetHashCode()
+        {
+            int hash = 17;
+            hash = hash * 23 + item1.GetHashCode();
+            hash = hash * 23 + item2.GetHashCode();
+            return hash;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (o.GetType() != typeof(Tuple<T1, T2>))
+            {
+                return false;
+            }
+
+            var other = (Tuple<T1, T2>)o;
+
+            return this == other;
+        }
+
+        public static bool operator ==(Tuple<T1, T2> a, Tuple<T1, T2> b)
+        {
+            return
+              a.item1.Equals(b.item1) &&
+              a.item2.Equals(b.item2);
+        }
+
+        public static bool operator !=(Tuple<T1, T2> a, Tuple<T1, T2> b)
+        {
+            return !(a == b);
+        }
+
+        public void Unpack(Action<T1, T2> unpackerDelegate)
+        {
+            unpackerDelegate(Item1, Item2);
+        }
+    }
+}
+
 public class CreatureCompositeClip
 {
     public string name;
@@ -115,12 +193,93 @@ public class CreatureCompositePlayer
     }
 }
 
+// Meta Data
+public class CreaturePackMetaData
+{
+    public Dictionary<String,  CreaturePackUtils.Tuple<int, int>> mesh_map;
+    public Dictionary<String, Dictionary<int, List<int>>> anim_order_map;
+    public Dictionary<String, Dictionary<int, String>> anim_events_map;
+    public Dictionary<String, HashSet<String>> skin_swaps;
+    public HashSet<String> active_skin_swap_names;
+
+    public CreaturePackMetaData()
+    {
+        mesh_map = new Dictionary<String, CreaturePackUtils.Tuple<int, int>>();
+        anim_order_map = new Dictionary<String, Dictionary<int, List<int>>>();
+        anim_events_map = new Dictionary<String, Dictionary<int, String>>();
+        skin_swaps = new Dictionary<string, HashSet<string>>();
+        active_skin_swap_names = new HashSet<String>();
+    }
+
+    public void clear()
+    {
+        mesh_map.Clear();
+        anim_order_map.Clear();
+        skin_swaps.Clear();
+    }
+
+    int getNumMeshIndices(String name_in)
+    {
+        var cur_data = mesh_map[name_in];
+        return cur_data.Item2 - cur_data.Item1 + 1;
+    }
+
+    public bool buildSkinSwapIndices(
+        String swap_name,
+        uint[] src_indices,
+        List<int> skin_swap_indices
+    )
+    {
+        if (!skin_swaps.ContainsKey(swap_name))
+        {
+            skin_swap_indices.Clear();
+            return false;
+        }
+
+        var swap_set = skin_swaps[swap_name];
+        active_skin_swap_names.Clear();
+        int total_size = 0;
+        foreach (var cur_data in mesh_map)
+        {
+            var cur_name = cur_data.Key;
+            if (swap_set.Contains(cur_name))
+            {
+                total_size += getNumMeshIndices(cur_name);
+                active_skin_swap_names.Add(cur_name);
+            }
+        }
+
+        skin_swap_indices.Clear();
+
+        int offset = 0;
+        foreach (var cur_data in mesh_map)
+        {
+            var region_name = cur_data.Key;
+            if (swap_set.Contains(region_name))
+            {
+                var num_indices = getNumMeshIndices(region_name);
+                for (int j = 0; j < getNumMeshIndices(region_name); j++)
+                {
+                    var local_idx = cur_data.Value.Item1 + j;
+                    skin_swap_indices.Add((int)src_indices[local_idx]);
+                }
+
+                offset += num_indices;
+            }
+        }
+
+        return true;
+    }
+}
+
+
 public class CreaturePackAsset : MonoBehaviour {
     public TextAsset creaturePackBytes = null, creatureMetaJSON = null;
     private bool is_dirty = false;
     private CreaturePackLoader packData = null;
     public Dictionary<String, Vector2> anchor_points = null;
     public CreatureCompositePlayer composite_player = null;
+    public CreaturePackMetaData meta_data = null;
     public CreaturePackAsset()
     {
         ResetState();
@@ -212,6 +371,45 @@ public class CreaturePackAsset : MonoBehaviour {
                 composite_player.composite_clips[subname] = write_list;
             }
         }
+
+        // MetaData object
+        meta_data = new CreaturePackMetaData();
+
+        // Mesh Regions
+        if (readJSON.HasKey("meshes"))
+        {
+            var all_meshes = readJSON["meshes"];
+            foreach (var region_key in all_meshes.Keys)
+            {
+                var region_name = region_key.Value;
+                var cur_obj = all_meshes[region_name];
+                int start_index = cur_obj["startIndex"].AsInt;
+                int end_index = cur_obj["endIndex"].AsInt;
+
+                meta_data.mesh_map[region_name] = new CreaturePackUtils.Tuple<int, int>(start_index, end_index);
+            }
+        }
+
+        // Skin Swaps
+        if (readJSON.HasKey("skinSwapList"))
+        {
+            var skin_swap_obj = readJSON["skinSwapList"];
+            foreach (var cur_key in skin_swap_obj.Keys)
+            {
+                var swap_name = cur_key.Value;
+                var swap_data = skin_swap_obj[swap_name]["swap"];
+                var swap_items = swap_data["swap_items"];
+                HashSet<String> swap_set = new HashSet<string>();
+                for(int j = 0; j < swap_items.Count; j++)
+                {
+                    var cur_item = swap_items[j].Value;
+                    swap_set.Add(cur_item);
+                }
+
+                meta_data.skin_swaps[swap_name] = swap_set;
+            }
+        }
+
     }
 
     public CreaturePackLoader GetCreaturePackLoader()
