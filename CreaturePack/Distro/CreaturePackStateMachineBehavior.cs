@@ -49,24 +49,40 @@ public class CreaturePackStateMachineBehavior : StateMachineBehaviour
     override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         var creature_renderer = pack_renderer;
+        bool process_composite_clip = false;
+        creature_renderer.use_composite_clips = false;
 
-        if (!do_blending)
+        if (creature_renderer.pack_asset.composite_player != null)
         {
-            creature_renderer.pack_player.setActiveAnimation(play_animation_name);
-        }
-        else
-        {
-            creature_renderer.pack_player.blendToAnimation(play_animation_name, blend_delta);
-        }
-
-        if(custom_clip_range)
-        {
-            var pack_data = creature_renderer.pack_player.data;
-            if(pack_data.animClipMap.ContainsKey(play_animation_name))
+            var composite_player = creature_renderer.pack_asset.composite_player;
+            if(composite_player.hasCompositeName(play_animation_name))
             {
-                creature_renderer.pack_player.isLooping = false;
-                creature_renderer.pack_player.setRunTime(custom_start_frame);
-                animator.SetBool("CustomRangeDone", false);
+                process_composite_clip = true;
+                creature_renderer.use_composite_clips = true;
+                creature_renderer.setCompositeActiveClip(play_animation_name);
+            }
+        }
+
+        if(!process_composite_clip)
+        {
+            if (!do_blending)
+            {
+                creature_renderer.pack_player.setActiveAnimation(play_animation_name);
+            }
+            else
+            {
+                creature_renderer.pack_player.blendToAnimation(play_animation_name, blend_delta);
+            }
+
+            if (custom_clip_range)
+            {
+                var pack_data = creature_renderer.pack_player.data;
+                if (pack_data.animClipMap.ContainsKey(play_animation_name))
+                {
+                    creature_renderer.pack_player.isLooping = false;
+                    creature_renderer.pack_player.setRunTime(custom_start_frame);
+                    animator.SetBool("CustomRangeDone", false);
+                }
             }
         }
     }

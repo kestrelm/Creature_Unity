@@ -140,6 +140,15 @@ public class CreaturePackRenderer : MonoBehaviour {
         }
     }
 
+    public void setCompositeActiveClip(String name_in)
+    {
+        if (pack_asset.composite_player != null)
+        {
+            composite_anim = name_in;
+            pack_asset.composite_player.setActiveName(composite_anim, true, pack_player);
+        }
+    }
+
     private bool reloadSkinSwap()
     {
         if(pack_asset.meta_data == null)

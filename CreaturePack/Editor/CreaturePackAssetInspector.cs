@@ -114,6 +114,18 @@ public class CreaturePackAssetInspector : Editor
                         EditorGUILayout.EndVertical();
                     }
                 }
+
+                if(packAsset.composite_player != null)
+                {
+                    EditorGUILayout.LabelField("Composite Clips", EditorStyles.boldLabel, GUILayout.MaxHeight(20));
+                    foreach(var comp_data in packAsset.composite_player.composite_clips)
+                    {
+                        EditorGUILayout.BeginVertical(GUILayout.MaxHeight(20));
+                        EditorGUILayout.LabelField(comp_data.Key,
+                                            GUILayout.MaxHeight(20));
+                        EditorGUILayout.EndVertical();
+                    }
+                }
             }
 
             if (GUILayout.Button("Build State Machine"))
@@ -121,6 +133,14 @@ public class CreaturePackAssetInspector : Editor
                 CreateStateMachine();
             }
         }
+    }
+
+    private void AddBehaviorState(UnityEditor.Animations.AnimatorStateMachine rootStateMachine, string nameIn)
+    {
+        var new_state = rootStateMachine.AddState(nameIn);
+        new_state.AddStateMachineBehaviour<CreaturePackStateMachineBehavior>();
+        CreaturePackStateMachineBehavior cur_behavior = (CreaturePackStateMachineBehavior)new_state.behaviours[0];
+        cur_behavior.play_animation_name = nameIn;
     }
 
     public void CreateStateMachine()
@@ -132,17 +152,24 @@ public class CreaturePackAssetInspector : Editor
         var rootStateMachine = controller.layers[0].stateMachine;
 
         // Add states
-        var all_animations
-            = pack_asset.GetCreaturePackLoader().animClipMap;
+        var all_animations = pack_asset.GetCreaturePackLoader().animClipMap;
 
         foreach (string cur_name in all_animations.Keys)
         {
-            var new_state = rootStateMachine.AddState(cur_name);
-
-            new_state.AddStateMachineBehaviour<CreaturePackStateMachineBehavior>();
-            CreaturePackStateMachineBehavior cur_behavior = (CreaturePackStateMachineBehavior)new_state.behaviours[0];
-            cur_behavior.play_animation_name = cur_name;
+            AddBehaviorState(rootStateMachine, cur_name);
         }
 
+
+        var metaData = pack_asset.meta_data;
+        if (metaData != null)
+        {
+            if (pack_asset.composite_player != null)
+            {
+                foreach (var cur_name in pack_asset.composite_player.composite_clips.Keys)
+                {
+                    AddBehaviorState(rootStateMachine, cur_name);
+                }
+            }
+        }
     }
 }
