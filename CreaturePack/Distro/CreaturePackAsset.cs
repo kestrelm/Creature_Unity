@@ -175,20 +175,41 @@ public class CreatureCompositePlayer
     }
 
     // Update the composite clip animation step
-    public void update(float delta_step, CreaturePackPlayer pack_player)
+    public void update(float delta_step, CreaturePackPlayer pack_player, bool should_loop)
     {
+        var sublist = composite_clips[active_name];
         var pre_time = pack_player.getRunTime();
+
+        if(!should_loop)
+        {
+            if ((pre_time >= sublist[active_idx].end_frame)
+                && (active_idx >= (sublist.Count -1 )))
+            {
+                return;
+            }
+        }
+
         pack_player.isLooping = true;
         pack_player.isPlaying = true;
         pack_player.stepTime(delta_step);
 
         var post_time = pack_player.getRunTime();
-        var sublist = composite_clips[active_name];
 
         if ((post_time < pre_time) || (post_time > sublist[active_idx].end_frame))
         {
-            active_idx = (active_idx + 1) % sublist.Count;
-            setupForSubClip(pack_player, active_idx, active_name);
+            var old_idx = active_idx;
+            var new_idx = (active_idx + 1) % sublist.Count;
+            bool advance_to_next = true;
+            if(!should_loop && (new_idx < old_idx))
+            {
+                advance_to_next = false;
+            }
+
+            if(advance_to_next)
+            {
+                active_idx = new_idx;
+                setupForSubClip(pack_player, active_idx, active_name);
+            }
         }
     }
 }

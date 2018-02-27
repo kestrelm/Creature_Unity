@@ -370,7 +370,7 @@ public class CreaturePackRenderer : MonoBehaviour {
             var comp_data = pack_asset.composite_player.composite_clips;
             if(comp_data.ContainsKey(composite_anim))
             {
-                pack_asset.composite_player.update(time_delta, pack_player);
+                pack_asset.composite_player.update(time_delta, pack_player, should_loop);
             }
         }
         else
