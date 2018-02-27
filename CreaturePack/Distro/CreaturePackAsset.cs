@@ -200,7 +200,7 @@ public class CreatureCompositePlayer
             var old_idx = active_idx;
             var new_idx = (active_idx + 1) % sublist.Count;
             bool advance_to_next = true;
-            if(!should_loop && (new_idx < old_idx))
+            if(!should_loop && (new_idx <= old_idx))
             {
                 advance_to_next = false;
             }
@@ -209,6 +209,10 @@ public class CreatureCompositePlayer
             {
                 active_idx = new_idx;
                 setupForSubClip(pack_player, active_idx, active_name);
+            }
+            else
+            {
+                pack_player.setRunTime(sublist[active_idx].end_frame);
             }
         }
     }
