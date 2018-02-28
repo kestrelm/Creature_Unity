@@ -335,7 +335,7 @@ namespace MiniMessagePack
 			if (b < 0) {
 				throw new FormatException ();
 			} else if (b <= 0x7f) { // positive fixint
-				return (long)b;
+				return (int)b;
 			} else if (b <= 0x8f) { // fixmap
 				return UnpackMap (s, b & 0x0f);
 			} else if (b <= 0x9f) { // fixarray
@@ -343,7 +343,7 @@ namespace MiniMessagePack
 			} else if (b <= 0xbf) { // fixstr
 				return UnpackString (s, b & 0x1f);
 			} else if( b >= 0xe0) { // negative fixint
-				return (long)unchecked((sbyte)b);
+				return (int)unchecked((sbyte)b);
 			}
 			switch (b) {
 			case 0xc0:
@@ -353,7 +353,7 @@ namespace MiniMessagePack
 			case 0xc3:
 				return true;
 			case 0xcc: // uint8
-				return (long)s.ReadByte ();
+				return (int)s.ReadByte ();
 			case 0xcd: // uint16
 				return UnpackUint16 (s);
 			case 0xce: // uint32
@@ -365,17 +365,17 @@ namespace MiniMessagePack
 				return ((long)tmp0 [0] << 56) | ((long)tmp0 [1] << 48) | ((long)tmp0 [2] << 40) | ((long)tmp0 [3] << 32)
 					+ ((long)tmp0 [4] << 24) | ((long)tmp0 [5] << 16) | ((long)tmp0 [6] << 8) | (long)tmp0 [7];
 			case 0xd0: // int8
-				return (long)unchecked((sbyte)s.ReadByte ());
+				return (int)unchecked((sbyte)s.ReadByte ());
 			case 0xd1: // int16
 				if (s.Read (tmp0, 0, 2) != 2) { 
 					throw new FormatException ();
 				}
-				return (((long)unchecked((sbyte)tmp0[0])) << 8) | (long)tmp0[1];
+				return (((int)unchecked((sbyte)tmp0[0])) << 8) | (int)tmp0[1];
 			case 0xd2: // int32
 				if (s.Read (tmp0, 0, 4) != 4) { 
 					throw new FormatException ();
 				}
-				return ((long)unchecked((sbyte)tmp0[0]) << 24) | ((long)tmp0[1] << 16) | ((long)tmp0[2] << 8) | (long)tmp0[3];
+				return ((int)unchecked((sbyte)tmp0[0]) << 24) | ((int)tmp0[1] << 16) | ((int)tmp0[2] << 8) | (int)tmp0[3];
 			case 0xd3: // int64
 				if (s.Read (tmp0, 0, 8) != 8) { 
 					throw new FormatException ();
@@ -435,18 +435,18 @@ namespace MiniMessagePack
 			return null;
 		}
 
-		private long UnpackUint16(Stream s) {
+		private int UnpackUint16(Stream s) {
 			if (s.Read (tmp0, 0, 2) != 2) { 
 				throw new FormatException ();
 			}
-			return (long)((tmp0[0] << 8) | tmp0[1]);
+			return (int)((tmp0[0] << 8) | tmp0[1]);
 		}
 
-		private long UnpackUint32(Stream s) {
+		private int UnpackUint32(Stream s) {
 			if (s.Read (tmp0, 0, 4) != 4) { 
 				throw new FormatException ();
 			}
-			return ((long)tmp0[0] << 24) | ((long)tmp0[1] << 16) | ((long)tmp0[2] << 8) | (long)tmp0[3];
+			return ((int)tmp0[0] << 24) | ((int)tmp0[1] << 16) | ((int)tmp0[2] << 8) | (int)tmp0[3];
 		}
 
 		private string UnpackString(Stream s, long len) {
@@ -464,10 +464,10 @@ namespace MiniMessagePack
 		}
 
 		private object[] UnpackArray(Stream s, long len) {
-			var list = new object[(int)len];
+			object[] list = new object[len];
 			for (long i = 0; i < len; i++) {
-				list[i] = (Unpack (s));
-			}
+                list[i] = Unpack(s);
+            }
 			return list;
 		}
 

@@ -39,6 +39,8 @@ using MiniMessagePack;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Diagnostics;
+using System.Threading;
 
 namespace CreaturePackModule
 {
@@ -291,9 +293,9 @@ namespace CreaturePackModule
             // do nothing
         }
 
-        public CreaturePackLoader(Stream byteStream)
+        public CreaturePackLoader(Stream byteStream, bool loadMultiCore)
         {
-            runDecoder(byteStream);
+            runDecoder(byteStream, loadMultiCore);
             meshRegionsList = findConnectedRegions();
         }
         
@@ -302,7 +304,7 @@ namespace CreaturePackModule
             var cur_data = (object[])fileData[idx];
             for (var i = 0; i < cur_data.Length; i++)
             {
-                indices[i] = (uint)(long)(cur_data[i]);
+                indices[i] = (uint)(int)(cur_data[i]);
             }
         }
 
@@ -371,8 +373,8 @@ namespace CreaturePackModule
         public Pair<int, int> getAnimationOffsets(int idx)
         {
             return new Pair<int, int>(
-               (int)(long)(animPairsOffsetList[idx * 2]), 
-               (int)(long)(animPairsOffsetList[idx * 2 + 1]));
+               (int)(animPairsOffsetList[idx * 2]), 
+               (int)(animPairsOffsetList[idx * 2 + 1]));
         }
 
         public int getBaseOffset()
@@ -418,11 +420,20 @@ namespace CreaturePackModule
             return curData.Length;
         }
 
-        public void runDecoder(Stream byteStream)
+        public void runDecoder(Stream byteStream, bool loadMultiCore)
         {
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+
             var newReader = new MiniMessagePacker();
             fileData = (object[])newReader.Unpack(byteStream);
-            
+
+            stopWatch.Stop();
+#if (CREATURE_PACK_DEBUG)
+            UnityEngine.Debug.Log("---Data Decode time: " + stopWatch.ElapsedMilliseconds);
+#endif
+            stopWatch.Reset();
+
             headerList = (object[])fileData[getBaseOffset()];
             animPairsOffsetList = (object[])fileData[getAnimPairsListOffset()];
             
@@ -436,7 +447,22 @@ namespace CreaturePackModule
             updateUVs(getBaseUvsOffset());
 
             fillDeformRanges();
-            finalAllPointSamples();
+
+            stopWatch.Start();
+
+            if (loadMultiCore)
+            {
+                finalAllPointSamplesThreaded();
+            }
+            else
+            {
+                finalAllPointSamples();
+            }
+
+            stopWatch.Stop();
+#if (CREATURE_PACK_DEBUG)
+            UnityEngine.Debug.Log("---Data Packaging time: " + stopWatch.ElapsedMilliseconds);
+#endif
 
             // init Animation Clip Map		
             for (int i = 0; i < getAnimationNum(); i++)
@@ -461,72 +487,152 @@ namespace CreaturePackModule
             }
         }
 
-        public void finalAllPointSamples()
+        class FinalPointsProcessData
         {
-            var deformCompressType = hasDeformCompress();
-            if (deformCompressType.Length == 0)
+            public FinalPointsProcessData(int idxIn, CreaturePackLoader loaderIn)
             {
-                return;
+                idx = idxIn;
+                parentLoader = loaderIn;
             }
 
-            for (int i = 0; i < getAnimationNum(); i++)
+            public int idx;
+            public CreaturePackLoader parentLoader;
+        };
+
+        private static void processPerFinalAllPointsSample(object objIn)
+        {
+            FinalPointsProcessData curProcessData = (FinalPointsProcessData)objIn;
+            int idx = curProcessData.idx;
+            CreaturePackLoader parentLoader = curProcessData.parentLoader;
+
+            var deformCompressType = parentLoader.hasDeformCompress();
+            bool has_deform_compress = (deformCompressType.Length > 0);
+            var curOffsetPair = parentLoader.getAnimationOffsets(idx);
+
+            var animName = (string)(parentLoader.fileData[curOffsetPair.first]);
+            var k = curOffsetPair.first;
+            k++;
+
+            while (k < curOffsetPair.second)
             {
-                var curOffsetPair = getAnimationOffsets(i);
-
-                var animName = (string)(fileData[curOffsetPair.first]);
-                var k = curOffsetPair.first;
-                k++;
-
-                while (k < curOffsetPair.second)
+                var pts_raw_array = parentLoader.fileData[k + 1];
+                int raw_num = 0;
+                if (pts_raw_array.GetType() == typeof(object[]))
                 {
-                    var pts_raw_array = fileData[k + 1];
-                    int raw_num = 0;
-                    if(pts_raw_array.GetType() == typeof(object[]))
-                    {
-                        raw_num = ((object[])pts_raw_array).Length;
-                    }
-                    else if(pts_raw_array.GetType() == typeof(byte[]))
-                    {
-                        raw_num = ((byte[])pts_raw_array).Length;
-                    }
+                    raw_num = ((object[])pts_raw_array).Length;
+                }
+                else if (pts_raw_array.GetType() == typeof(byte[]))
+                {
+                    raw_num = ((byte[])pts_raw_array).Length;
+                }
 
-                    var final_pts_array = new object[raw_num];
+                var final_pts_array = new float[raw_num];
+                if (!has_deform_compress)
+                {
+                    var pts_array = (object[])pts_raw_array;
                     for (int m = 0; m < raw_num; m++)
                     {
-                        float bucketVal = 0.0f;
-                        float numBuckets = 0.0f;
-                        if(deformCompressType == "deform_comp1")
+                        final_pts_array[m] = (float)pts_array[m];
+                    }
+                }
+                else
+                {
+                    object[] pts_obj_array = null;
+                    byte[] pts_byte_array = null;
+                    float recp_x = 0, recp_y = 9;
+                    float numBuckets = 0.0f;
+                    if (deformCompressType == "deform_comp1")
+                    {
+                        pts_obj_array = (object[])pts_raw_array;
+                        numBuckets = 65535.0f;
+                    }
+                    else if (deformCompressType == "deform_comp2")
+                    {
+                        pts_byte_array = (byte[])pts_raw_array;
+                        numBuckets = 255.0f;
+                    }
+
+                    recp_x = 1.0f / numBuckets * (parentLoader.dMaxX - parentLoader.dMinX);
+                    recp_y = 1.0f / numBuckets * (parentLoader.dMaxY - parentLoader.dMinY);
+                    int bucketType = 0;
+                    if (deformCompressType == "deform_comp1")
+                    {
+                        bucketType = 1;
+                    }
+                    else if (deformCompressType == "deform_comp2")
+                    {
+                        bucketType = 2;
+                    }
+
+                    float bucketVal = 0.0f;
+                    float setVal = 0.0f;
+                    for (int m = 0; m < raw_num; m++)
+                    {
+                        bucketVal = 0.0f;
+                        if (bucketType == 1)
                         {
-                            var pts_array = (object[])pts_raw_array;
-                            bucketVal = Convert.ToSingle((long)pts_array[m]);
-                            numBuckets = 65535.0f;
+                            bucketVal = (float)((int)pts_obj_array[m]);
                         }
-                        else if (deformCompressType == "deform_comp2")
+                        else if (bucketType == 2)
                         {
-                            var pts_array = (byte[])pts_raw_array;
-                            bucketVal = Convert.ToSingle((byte)pts_array[m]);
-                            numBuckets = 255.0f;
+                            bucketVal = (float)((byte)pts_byte_array[m]);
                         }
 
-                        float setVal = 0.0f;
-                        if(m % 2 == 0)
+                        setVal = 0.0f;
+                        if (m % 2 == 0)
                         {
-                            setVal = (bucketVal / numBuckets * (dMaxX - dMinX)) + dMinX;
-                            setVal += points[m];
+                            setVal = bucketVal * recp_x + parentLoader.dMinX;
+                            setVal += parentLoader.points[m];
                         }
                         else
                         {
-                            setVal = (bucketVal / numBuckets * (dMaxY - dMinY)) + dMinY;
-                            setVal += points[m];
+                            setVal = bucketVal * recp_y + parentLoader.dMinY;
+                            setVal += parentLoader.points[m];
                         }
 
                         final_pts_array[m] = setVal;
                     }
-                    fileData[k + 1] = final_pts_array;
+                }
 
-                    k += 4;
+                parentLoader.fileData[k + 1] = final_pts_array;
+
+                k += 4;
+            }
+        }
+
+        public void finalAllPointSamples()
+        {
+            for (int i = 0; i < getAnimationNum(); i++)
+            {
+                processPerFinalAllPointsSample(new FinalPointsProcessData(i, this));
+            }
+        }
+
+        public void finalAllPointSamplesThreaded()
+        {
+            List<Thread> threadList = new List<Thread>();
+            for (int i = 0; i < getAnimationNum(); i++)
+            {
+                if(threadList.Count < SystemInfo.processorCount)
+                {
+                    Thread newT = new Thread(new ParameterizedThreadStart(processPerFinalAllPointsSample));
+                    threadList.Add(newT);
+                    threadList[i].Start(new FinalPointsProcessData(i, this));
+                }
+                else
+                {
+                    processPerFinalAllPointsSample(new FinalPointsProcessData(i, this));
                 }
             }
+
+            for(int i = 0; i < threadList.Count; i++)
+            {
+                threadList[i].Join();
+            }
+
+#if (CREATURE_PACK_DEBUG)
+            UnityEngine.Debug.Log("---Loader Threads spawned: " + threadList.Count);
+#endif
         }
 
         public string GetFirstAnimClipName()
@@ -777,8 +883,8 @@ namespace CreaturePackModule
                 CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                 CreatureTimeSample high_data = cur_clip.timeSamplesMap[cur_clip_info.secondSampleIdx];
 
-                object[] anim_low_points = (object[])data.fileData[low_data.getAnimPointsOffset()];
-                object[] anim_high_points = (object[])data.fileData[high_data.getAnimPointsOffset()];
+                float[] anim_low_points = (float[])data.fileData[low_data.getAnimPointsOffset()];
+                float[] anim_high_points = (float[])data.fileData[high_data.getAnimPointsOffset()];
                 
                 for (var i = 0; i < renders_base_size; i++)
                 {
@@ -802,8 +908,8 @@ namespace CreaturePackModule
                 CreatureTimeSample active_low_data = active_clip.timeSamplesMap[active_clip_info.firstSampleIdx];
                 CreatureTimeSample active_high_data = active_clip.timeSamplesMap[active_clip_info.secondSampleIdx];
 
-                object[] active_anim_low_points = (object[])data.fileData[active_low_data.getAnimPointsOffset()];
-                object[] active_anim_high_points = (object[])data.fileData[active_high_data.getAnimPointsOffset()];
+                float[] active_anim_low_points = (float[])data.fileData[active_low_data.getAnimPointsOffset()];
+                float[] active_anim_high_points = (float[])data.fileData[active_high_data.getAnimPointsOffset()];
                 
                 // Previous Clip
                 var prev_clip =  data.animClipMap[prevAnimationName];
@@ -812,8 +918,8 @@ namespace CreaturePackModule
                 CreatureTimeSample prev_low_data = prev_clip.timeSamplesMap[prev_clip_info.firstSampleIdx];
                 CreatureTimeSample prev_high_data = prev_clip.timeSamplesMap[prev_clip_info.secondSampleIdx];
 
-                object[] prev_anim_low_points = (object[])data.fileData[prev_low_data.getAnimPointsOffset()];
-                object[] prev_anim_high_points = (object[])data.fileData[prev_high_data.getAnimPointsOffset()];
+                float[] prev_anim_low_points = (float[])data.fileData[prev_low_data.getAnimPointsOffset()];
+                float[] prev_anim_high_points = (float[])data.fileData[prev_high_data.getAnimPointsOffset()];
 
                 for (var i = 0; i < renders_base_size; i++)
                 {
@@ -849,8 +955,8 @@ namespace CreaturePackModule
                     && (anim_high_colors.Length == getRenderColorsLength())) {
                     for (var i = 0; i < getRenderColorsLength(); i++)
                     {
-                        float low_val = (float)(long)(anim_low_colors[i]);
-                        float high_val = (float)(long)(anim_high_colors[i]);
+                        float low_val = (float)(int)(anim_low_colors[i]);
+                        float high_val = (float)(int)(anim_high_colors[i]);
 
                         render_colors[i] = (byte)interpScalar(low_val, high_val, cur_clip_info.sampleFraction);
 

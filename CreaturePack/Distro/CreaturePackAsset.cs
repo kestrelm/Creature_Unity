@@ -305,6 +305,7 @@ public class CreaturePackAsset : MonoBehaviour {
     public Dictionary<String, Vector2> anchor_points = null;
     public CreatureCompositePlayer composite_player = null;
     public CreaturePackMetaData meta_data = null;
+    public bool load_multicore = true; // Enable or Disable this to load data with multiple cores
     public CreaturePackAsset()
     {
         ResetState();
@@ -454,7 +455,7 @@ public class CreaturePackAsset : MonoBehaviour {
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
         Stream readStream = new MemoryStream(creaturePackBytes.bytes);
-        packData = new CreaturePackLoader(readStream);
+        packData = new CreaturePackLoader(readStream, load_multicore);
 
         sw.Stop();
         Debug.Log("Loading time for: " + name + " took: " + sw.ElapsedMilliseconds.ToString() + " ms");
