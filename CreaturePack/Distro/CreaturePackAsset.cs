@@ -222,6 +222,7 @@ public class CreatureCompositePlayer
 public class CreaturePackMetaData
 {
     public Dictionary<String,  CreaturePackUtils.Tuple<int, int>> mesh_map;
+    public List<String> mesh_sorted_names;
     public Dictionary<String, Dictionary<int, List<int>>> anim_order_map;
     public Dictionary<String, Dictionary<int, String>> anim_events_map;
     public Dictionary<String, HashSet<String>> skin_swaps;
@@ -230,6 +231,7 @@ public class CreaturePackMetaData
     public CreaturePackMetaData()
     {
         mesh_map = new Dictionary<String, CreaturePackUtils.Tuple<int, int>>();
+        mesh_sorted_names = new List<string>();
         anim_order_map = new Dictionary<String, Dictionary<int, List<int>>>();
         anim_events_map = new Dictionary<String, Dictionary<int, String>>();
         skin_swaps = new Dictionary<string, HashSet<string>>();
@@ -239,6 +241,7 @@ public class CreaturePackMetaData
     public void clear()
     {
         mesh_map.Clear();
+        mesh_sorted_names.Clear();
         anim_order_map.Clear();
         skin_swaps.Clear();
     }
@@ -249,12 +252,44 @@ public class CreaturePackMetaData
         return cur_data.Item2 - cur_data.Item1 + 1;
     }
 
+    private void genSortedMeshNames(CreaturePackPlayer pack_player)
+    {
+        mesh_sorted_names.Clear();
+        foreach (var meshData in pack_player.data.meshRegionsList)
+        {
+            foreach (var cmpMeshData in mesh_map)
+            {
+                uint cmpMinIdx = (uint)pack_player.data.points.Length, cmpMaxIdx = 0;
+                for(int k = cmpMeshData.Value.Item1; k <= cmpMeshData.Value.Item2; k++)
+                {
+                    var cur_idx = pack_player.data.indices[k];
+                    cmpMinIdx = Math.Min(cmpMinIdx, cur_idx);
+                    cmpMaxIdx = Math.Max(cmpMaxIdx, cur_idx);
+                }
+
+                if ((meshData.first == cmpMinIdx) 
+                    && (meshData.second == cmpMaxIdx))
+                {
+                    mesh_sorted_names.Add(cmpMeshData.Key);
+                }
+            }
+        }
+    }
+
     public bool buildSkinSwapIndices(
         String swap_name,
         uint[] src_indices,
-        List<int> skin_swap_indices
+        List<int> skin_swap_indices,
+        CreaturePackPlayer pack_player
     )
     {
+        // Generate sorted names in mesh drawing order
+        if (mesh_sorted_names.Count == 0)
+        {
+            genSortedMeshNames(pack_player);
+        }
+
+        // Now Generate Skin Swap indices
         if (!skin_swaps.ContainsKey(swap_name))
         {
             skin_swap_indices.Clear();
@@ -277,15 +312,15 @@ public class CreaturePackMetaData
         skin_swap_indices.Clear();
 
         int offset = 0;
-        foreach (var cur_data in mesh_map)
+        foreach (var region_name in mesh_sorted_names)
         {
-            var region_name = cur_data.Key;
             if (swap_set.Contains(region_name))
             {
                 var num_indices = getNumMeshIndices(region_name);
+                var cur_range = mesh_map[region_name];
                 for (int j = 0; j < getNumMeshIndices(region_name); j++)
                 {
-                    var local_idx = cur_data.Value.Item1 + j;
+                    var local_idx = cur_range.Item1 + j;
                     skin_swap_indices.Add((int)src_indices[local_idx]);
                 }
 

@@ -70,6 +70,7 @@ public class CreaturePackRenderer : MonoBehaviour {
     public string anchor_pts_anim = "";
     public bool use_composite_clips = false;
     public string composite_anim = "";
+    public Dictionary<String, byte> alpha_region_overrides = new Dictionary<string, byte>();
 
     public bool use_skin_swap = false;
     private string prev_skin_swap = "";
@@ -140,6 +141,27 @@ public class CreaturePackRenderer : MonoBehaviour {
         }
     }
 
+    // Adds an alpha region override, make sure your MetaData slot is connected
+    public void setAlphaRegionOverride(String region_name, byte val_in)
+    {
+        alpha_region_overrides[region_name] = val_in;
+    }
+
+    // Removes an alpha region override
+    public void removeAlphaRegionOverride(String region_name)
+    {
+        if(alpha_region_overrides.ContainsKey(region_name))
+        {
+            alpha_region_overrides.Remove(region_name);
+        }
+    }
+
+    // Clears all alpha region overrides
+    public void clearAlphaRegionsOverride()
+    {
+        alpha_region_overrides.Clear();
+    }
+
     public void setCompositeActiveClip(String name_in)
     {
         if (pack_asset.composite_player != null)
@@ -159,7 +181,8 @@ public class CreaturePackRenderer : MonoBehaviour {
         var retval = pack_asset.meta_data.buildSkinSwapIndices(
             skin_swap,
             pack_player.data.indices, 
-            skin_swap_indices);
+            skin_swap_indices,
+            pack_player);
 
         if(!retval)
         {
@@ -211,6 +234,35 @@ public class CreaturePackRenderer : MonoBehaviour {
         triangles = new int[total_num_indices];
     }
 
+    public void processRegionAlphaOverrides()
+    {
+        if((pack_asset.meta_data == null) || (alpha_region_overrides.Count == 0))
+        {
+            return;
+        }
+        var render_colors = pack_player.render_colors;
+        var render_indices = pack_player.data.indices;
+
+        foreach (var cur_override in alpha_region_overrides)
+        {
+            var cur_name = cur_override.Key;
+            var cur_alpha = cur_override.Value;
+
+            if(pack_asset.meta_data.mesh_map.ContainsKey(cur_name))
+            {
+                var region_range = pack_asset.meta_data.mesh_map[cur_name];
+                for(int j = region_range.Item1; j <= region_range.Item2; j++)
+                {
+                    var cur_idx = render_indices[j];
+                    colors[cur_idx].r = cur_alpha;
+                    colors[cur_idx].g = cur_alpha;
+                    colors[cur_idx].b = cur_alpha;
+                    colors[cur_idx].a = cur_alpha;
+                }
+            }
+        }
+    }
+
     public void UpdateRenderingData()
     {
         int pt_index = 0;
@@ -253,6 +305,8 @@ public class CreaturePackRenderer : MonoBehaviour {
             uv_index += 2;
             color_index += 4;
         }
+
+        processRegionAlphaOverrides();
 
         var cur_z = 0.0f;
         var render_indices = pack_player.data.indices;
