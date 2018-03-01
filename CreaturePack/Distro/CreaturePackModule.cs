@@ -352,6 +352,10 @@ namespace CreaturePackModule
                 {
                     return "deform_comp2";
                 }
+                else if ((string)headerList[i] == "deform_comp1_1")
+                {
+                    return "deform_comp1_1";
+                }
             }
 
             return "";
@@ -512,6 +516,7 @@ namespace CreaturePackModule
             var animName = (string)(parentLoader.fileData[curOffsetPair.first]);
             var k = curOffsetPair.first;
             k++;
+            byte[] bytes2Data = new byte[2];
 
             while (k < curOffsetPair.second)
             {
@@ -523,7 +528,14 @@ namespace CreaturePackModule
                 }
                 else if (pts_raw_array.GetType() == typeof(byte[]))
                 {
-                    raw_num = ((byte[])pts_raw_array).Length;
+                    if (deformCompressType == "deform_comp1_1")
+                    {
+                        raw_num = ((byte[])pts_raw_array).Length / 2;
+                    }
+                    else 
+                    {
+                        raw_num = ((byte[])pts_raw_array).Length;
+                    }
                 }
 
                 var final_pts_array = new float[raw_num];
@@ -551,6 +563,11 @@ namespace CreaturePackModule
                         pts_byte_array = (byte[])pts_raw_array;
                         numBuckets = 255.0f;
                     }
+                    else if (deformCompressType == "deform_comp1_1")
+                    {
+                        pts_byte_array = (byte[])pts_raw_array;
+                        numBuckets = 65535.0f;
+                    }
 
                     recp_x = 1.0f / numBuckets * (parentLoader.dMaxX - parentLoader.dMinX);
                     recp_y = 1.0f / numBuckets * (parentLoader.dMaxY - parentLoader.dMinY);
@@ -562,6 +579,10 @@ namespace CreaturePackModule
                     else if (deformCompressType == "deform_comp2")
                     {
                         bucketType = 2;
+                    }
+                    else if (deformCompressType == "deform_comp1_1")
+                    {
+                        bucketType = 3;
                     }
 
                     float bucketVal = 0.0f;
@@ -576,6 +597,13 @@ namespace CreaturePackModule
                         else if (bucketType == 2)
                         {
                             bucketVal = (float)((byte)pts_byte_array[m]);
+                        }
+                        else if (bucketType == 3)
+                        {
+                            bytes2Data[0] = pts_byte_array[m * 2];
+                            bytes2Data[1] = pts_byte_array[m * 2 + 1];
+                            int int_val = (int)BitConverter.ToUInt16(bytes2Data, 0);
+                            bucketVal = (float)int_val;
                         }
 
                         setVal = 0.0f;
