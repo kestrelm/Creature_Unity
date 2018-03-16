@@ -51,6 +51,7 @@ namespace CreatureModule
         public Dictionary<String, Dictionary<int, String>> anim_events_map;
         public Dictionary<String, HashSet<String>> skin_swaps;
         public HashSet<int> active_skin_swap_ids;
+        public Dictionary<String, int> vertex_attachments;
 
         public class MorphData
         {
@@ -80,6 +81,7 @@ namespace CreatureModule
             anim_events_map = new Dictionary<String, Dictionary<int, String>>();
             skin_swaps = new Dictionary<string, HashSet<string>>();
             active_skin_swap_ids = new HashSet<int>();
+            vertex_attachments = new Dictionary<string, int>();
         }
 
         public void clear()
@@ -87,6 +89,24 @@ namespace CreatureModule
             mesh_map.Clear();
             anim_order_map.Clear();
             skin_swaps.Clear();
+            vertex_attachments.Clear();
+        }
+
+        // Returns vertex attachment point in character space
+        public UnityEngine.Vector3 getVertexAttachment(string name_in, Creature creature_in)
+        {
+            if(vertex_attachments.ContainsKey(name_in))
+            {
+                var cur_idx = vertex_attachments[name_in];
+                var render_pts = creature_in.render_pts;
+                return new UnityEngine.Vector3(
+                    render_pts[cur_idx * 3],
+                    render_pts[cur_idx * 3 + 1],
+                    render_pts[cur_idx * 3 + 2]
+                    );
+            }
+
+            return new UnityEngine.Vector3(0, 0, 0);
         }
 
         public void buildSkinSwapIndices(
@@ -867,7 +887,8 @@ namespace CreatureModule
             string json_text_in,
             List<CreaturePhysicsData.BendPhysicsChain> physics_assets,
             List<String> skin_swap_names,
-            List<String> morph_poses)
+            List<String> morph_poses,
+            List<String> vertex_attachments)
         {
             meta_data.clear();
             var json_dict = JsonFx.Json.JsonReader.Deserialize(json_text_in, typeof(Dictionary<string, object>)) as Dictionary<string, object>;
@@ -1065,7 +1086,23 @@ namespace CreatureModule
                 meta_data.morph_data.weights = new float[morph_shapes_array.Length];
             }
 
-    }
+            // Vertex Attachments
+            if(json_dict.ContainsKey("VertAttachments"))
+            {
+                vertex_attachments.Clear();
+                var attachments_obj = (Dictionary<string, object>)json_dict["VertAttachments"];
+                var attachments_list = (System.Object[])attachments_obj["attachments"];
+                for(int j = 0; j < attachments_list.Length; j++)
+                {
+                    var cur_attachment = (Dictionary<string, object>)attachments_list[j];
+                    var cur_name = (string)cur_attachment["attach_name"];
+                    var cur_idx = (int)cur_attachment["idx"];
+
+                    meta_data.vertex_attachments[cur_name] = cur_idx;
+                    vertex_attachments.Add(cur_name);
+                }
+            }
+        }
 
         public static float[] getFloatArray(System.Object raw_data)
         {

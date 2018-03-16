@@ -126,6 +126,9 @@ public class CreatureAsset : MonoBehaviour
     [SerializeField]
     public List<String> morph_poses = new List<String>();
 
+    [SerializeField]
+    public List<String> vertex_attachments = new List<String>();
+
 #if UNITY_EDITOR
     [MenuItem("GameObject/Creature/CreatureAsset")]
 	static CreatureAsset CreateCreatureAsset()
@@ -285,7 +288,8 @@ public class CreatureAsset : MonoBehaviour
                 creatureMetaJSON.text,
                 physics_assets,
                 skin_swap_names,
-                morph_poses);
+                morph_poses,
+                vertex_attachments);
 		}
 
 		return creature_manager;

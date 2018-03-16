@@ -305,6 +305,19 @@ public class CreatureAssetInspector : Editor {
                 EditorGUILayout.EndHorizontal();
             }
         }
+
+        if(creature_asset.vertex_attachments.Count > 0)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Vertex Attachments", EditorStyles.boldLabel);
+            foreach (var cur_attachment_name in creature_asset.vertex_attachments)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxHeight(20));
+                EditorGUILayout.LabelField(cur_attachment_name, GUILayout.MaxWidth(100));
+                EditorGUILayout.EndHorizontal();
+            }
+        }
     }
 
     public void RunLiveSync()

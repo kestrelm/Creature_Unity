@@ -256,6 +256,15 @@ public class CreatureGameController : MonoBehaviour
         return creature_renderer.transform.InverseTransformPoint(pt_in);
     }
 
+    // Returns the vertex attachment point transformed into world space
+    // Make sure you have the meta data attached to the CreatureAsset
+    public UnityEngine.Vector3 GetVertexAttachmentPoint(string name_in)
+    {
+        var cur_meta_data = creature_renderer.creature_asset.creature_meta_data;
+        var char_space_pt = cur_meta_data.getVertexAttachment(name_in, creature_renderer.creature_manager.GetCreature());
+        return TransformToCreaturePt(char_space_pt);
+    }
+
     void Awake()
     {
         // Find a reference to the Animator component in Awake since it exists in the scene.
