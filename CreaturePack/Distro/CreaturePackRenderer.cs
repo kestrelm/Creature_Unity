@@ -74,6 +74,7 @@ public class CreaturePackRenderer : MonoBehaviour {
 
     public bool use_skin_swap = false;
     private string prev_skin_swap = "";
+    public bool use_meta_data = false;
     private bool skin_swap_valid = false;
     public string skin_swap = "";
 
@@ -130,7 +131,7 @@ public class CreaturePackRenderer : MonoBehaviour {
 
         if(pack_asset != null && pack_player != null)
         {
-            if (use_anchor_pts || use_composite_clips || use_skin_swap)
+            if (use_anchor_pts || use_composite_clips || use_skin_swap || use_meta_data)
             {
                 pack_asset.LoadMetaData();
                 if (pack_asset.composite_player != null)
