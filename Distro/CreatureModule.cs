@@ -2054,12 +2054,19 @@ namespace CreatureModule
             return cache_pts.Count != 0;
         }
 
-        public float correctTime(float run_time)
+        public float correctTime(float run_time, bool should_loop)
         {
             float ret_time = run_time;
             if (ret_time > end_time)
             {
-                ret_time = start_time;
+                if(should_loop)
+                {
+                    ret_time = start_time;
+                }
+                else
+                {
+                    ret_time = end_time;
+                }
             }
             else if (ret_time < start_time)
             {
@@ -2179,7 +2186,7 @@ namespace CreatureModule
                 creature_manager.PoseJustBones(cur_blend.anim_clip_name, cur_blend.run_time, false);
 
                 cur_blend.run_time += cur_blend.delta_run_time;
-                cur_blend.run_time = cur_anim.correctTime(cur_blend.run_time);
+                cur_blend.run_time = cur_anim.correctTime(cur_blend.run_time, true);
 
                 foreach (var bone_name in cur_blend.bone_names)
                 {
@@ -2490,7 +2497,7 @@ namespace CreatureModule
         public void correctTime()
         {
             CreatureAnimation cur_animation = animations[active_animation_name];
-            run_time = cur_animation.correctTime(run_time);
+            run_time = cur_animation.correctTime(run_time, should_loop);
         }
 
         // Returns the current run time of the animation
