@@ -2692,6 +2692,7 @@ namespace CreatureModule
             }
 
             ResetBlendTime(animation_name_in);
+            active_blend_run_times[active_animation_name] = getActualRuntime();
 
             auto_blend_delta = blend_delta;
             auto_blend_names[0] = active_animation_name;
