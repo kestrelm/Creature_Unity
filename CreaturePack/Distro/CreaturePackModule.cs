@@ -859,6 +859,19 @@ namespace CreaturePackModule
             var splitProcessObj = new FinalPointsProcessSplitData(this, readData);
             processPerFinalAllPointsSample(splitProcessObj);
         }
+
+        // Removes the designated animation clip from the list of loaded animation clips
+        public bool removeSplitAnimClip(string animName, Stream byteStream, CreaturePackPlayer playerIn)
+        {
+            if(!animClipMap.ContainsKey(animName))
+            {
+                return false;
+            }
+
+            animClipMap.Remove(animName);
+            playerIn.runTimeMap.Remove(animName);
+            return true;
+        }
     }
 
     // Base Player class that target renderers use
