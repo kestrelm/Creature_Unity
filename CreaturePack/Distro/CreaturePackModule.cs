@@ -55,6 +55,14 @@ namespace CreaturePackModule
         }
     }
 
+    public class CreatureConsts
+    {
+        public static int SPLIT_VTYPE_IDX = 0;
+        public static int SPLIT_CLIP_NAME_IDX = 1;
+        public static int SPLIT_CLIP_RANGE_IDX = 2;
+        public static int SPLIT_CLIP_ANIM_IDX = 4;
+    }
+
     public class CreatureTimeSample
     {
         public int beginTime, endTime, dataIdx;
@@ -127,24 +135,26 @@ namespace CreaturePackModule
         public SortedDictionary<int, CreatureTimeSample> timeSamplesMap = new SortedDictionary<int, CreatureTimeSample>();
         public  int dataIdx;
         public bool firstSet;
+        public object[] fileData;
 
         public CreaturePackAnimClip()
         {
-            initData(-1);
+            initData(-1, null);
         }
 
-        public CreaturePackAnimClip(int dataIdxIn)
+        public CreaturePackAnimClip(int dataIdxIn, object[] fileDataIn)
         {
-            initData(dataIdxIn);
+            initData(dataIdxIn, fileDataIn);
         }
 
-        public void initData(int dataIdxIn)
+        public void initData(int dataIdxIn, object[] fileDataIn)
         {
             dataIdx = dataIdxIn;
             startTime = 0;
             endTime = 0;
             firstSet = false;
             timeSamplesMap = new SortedDictionary<int, CreatureTimeSample>();
+            fileData = fileDataIn;
         }
 
         public CreaturePackSampleData sampleTime(float timeIn)
@@ -249,6 +259,38 @@ namespace CreaturePackModule
 			    }
             }		
 	    }
+    }
+
+    // This class loads a single Animation from a Split Creature Pack Anim Data objects list
+    public class CreaturePackSplitAnimClip : CreaturePackAnimClip
+    {
+        public CreaturePackSplitAnimClip(object[] dataList)
+        {
+            var readData = dataList;
+            int vType = (int)readData[CreatureConsts.SPLIT_VTYPE_IDX];
+
+            if(vType == 0)
+            {
+                object[] localRange = (object[])readData[CreatureConsts.SPLIT_CLIP_RANGE_IDX];
+                startTime = (int)localRange[0];
+                endTime = (int)localRange[1];
+
+                initData(CreatureConsts.SPLIT_CLIP_ANIM_IDX, readData);
+  
+                for(int k = dataIdx; k < fileData.Length; k += 4)
+                {
+                    int cur_time = (int)(float)(fileData[k]);
+                    addTimeSample(cur_time, (int)k);
+                }
+
+                finalTimeSamples();
+            }
+            else
+            {
+                // Invalid version type
+                System.Diagnostics.Debug.Assert(true);
+            }
+        }
     }
 
     // This is the class the loads in Creature Pack Data from the byte stream
@@ -476,7 +518,7 @@ namespace CreaturePackModule
                 var animName = (string)(fileData[curOffsetPair.first]);
                 var k = curOffsetPair.first;
                 k++;
-                var newClip = new CreaturePackAnimClip(k);
+                var newClip = new CreaturePackAnimClip(k, fileData);
                     
                 while(k < curOffsetPair.second)
                 {
@@ -493,34 +535,67 @@ namespace CreaturePackModule
 
         class FinalPointsProcessData
         {
+            public int idx;
+            public object[] fileData;
+            private CreaturePackLoader parentLoader;
+            public float dMinX, dMinY, dMaxX, dMaxY;
+            public float[] points;
+
             public FinalPointsProcessData(int idxIn, CreaturePackLoader loaderIn)
             {
                 idx = idxIn;
                 parentLoader = loaderIn;
+                dMinX = parentLoader.dMinX;
+                dMinY = parentLoader.dMinY;
+                dMaxX = parentLoader.dMaxX;
+                dMaxY = parentLoader.dMaxY;
+
+                points = parentLoader.points;
+                fileData = parentLoader.fileData;
             }
 
-            public int idx;
-            public CreaturePackLoader parentLoader;
+            public virtual string hasDeformCompress()
+            {
+                return parentLoader.hasDeformCompress();
+            }
+
+            public virtual Pair<int, int> getAnimationOffsets(int idx)
+            {
+                return parentLoader.getAnimationOffsets(idx);
+            }
         };
+
+        class FinalPointsProcessSplitData : FinalPointsProcessData
+        {
+            public FinalPointsProcessSplitData(CreaturePackLoader loaderIn, object[] dataList)
+                : base(CreatureConsts.SPLIT_CLIP_ANIM_IDX, loaderIn)
+            {
+                fileData = dataList;   
+            }
+
+            public override Pair<int, int> getAnimationOffsets(int idx)
+            {
+                int start_val = CreatureConsts.SPLIT_CLIP_ANIM_IDX - 1;
+                int end_val = (fileData.Length - 1);
+                return new Pair<int, int>(CreatureConsts.SPLIT_CLIP_ANIM_IDX - 1, end_val);
+            }
+        }
 
         private static void processPerFinalAllPointsSample(object objIn)
         {
             FinalPointsProcessData curProcessData = (FinalPointsProcessData)objIn;
             int idx = curProcessData.idx;
-            CreaturePackLoader parentLoader = curProcessData.parentLoader;
 
-            var deformCompressType = parentLoader.hasDeformCompress();
+            var deformCompressType = curProcessData.hasDeformCompress();
             bool has_deform_compress = (deformCompressType.Length > 0);
-            var curOffsetPair = parentLoader.getAnimationOffsets(idx);
-
-            var animName = (string)(parentLoader.fileData[curOffsetPair.first]);
+            var curOffsetPair = curProcessData.getAnimationOffsets(idx);
             var k = curOffsetPair.first;
             k++;
             byte[] bytes2Data = new byte[2];
 
             while (k < curOffsetPair.second)
             {
-                var pts_raw_array = parentLoader.fileData[k + 1];
+                var pts_raw_array = curProcessData.fileData[k + 1];
                 int raw_num = 0;
                 if (pts_raw_array.GetType() == typeof(object[]))
                 {
@@ -569,8 +644,8 @@ namespace CreaturePackModule
                         numBuckets = 65535.0f;
                     }
 
-                    recp_x = 1.0f / numBuckets * (parentLoader.dMaxX - parentLoader.dMinX);
-                    recp_y = 1.0f / numBuckets * (parentLoader.dMaxY - parentLoader.dMinY);
+                    recp_x = 1.0f / numBuckets * (curProcessData.dMaxX - curProcessData.dMinX);
+                    recp_y = 1.0f / numBuckets * (curProcessData.dMaxY - curProcessData.dMinY);
                     int bucketType = 0;
                     if (deformCompressType == "deform_comp1")
                     {
@@ -609,20 +684,20 @@ namespace CreaturePackModule
                         setVal = 0.0f;
                         if (m % 2 == 0)
                         {
-                            setVal = bucketVal * recp_x + parentLoader.dMinX;
-                            setVal += parentLoader.points[m];
+                            setVal = bucketVal * recp_x + curProcessData.dMinX;
+                            setVal += curProcessData.points[m];
                         }
                         else
                         {
-                            setVal = bucketVal * recp_y + parentLoader.dMinY;
-                            setVal += parentLoader.points[m];
+                            setVal = bucketVal * recp_y + curProcessData.dMinY;
+                            setVal += curProcessData.points[m];
                         }
 
                         final_pts_array[m] = setVal;
                     }
                 }
 
-                parentLoader.fileData[k + 1] = final_pts_array;
+                curProcessData.fileData[k + 1] = final_pts_array;
 
                 k += 4;
             }
@@ -764,6 +839,26 @@ namespace CreaturePackModule
             return regionsList;
         }
 
+        // Adds in a new animation clip from a CreaturePack Anim Data byte stream
+        // This means you are using the separately exported CreaturePack Animation Data files
+        public void addSplitAnimClip(Stream byteStream, CreaturePackPlayer playerIn)
+        {
+            var newReader = new MiniMessagePacker();
+            var unpackData = newReader.Unpack(byteStream);
+            var readData = (object[])unpackData;
+
+            // Add in new clip data
+            var splitClip = new CreaturePackSplitAnimClip(readData);
+            var clipName = (string)readData[CreatureConsts.SPLIT_CLIP_NAME_IDX];
+            animClipMap[clipName] = splitClip;
+            playerIn.runTimeMap[clipName] = splitClip.startTime;
+
+            UnityEngine.Debug.Log("Adding Pack Split Animation: " + clipName);
+
+            // Process clip point data
+            var splitProcessObj = new FinalPointsProcessSplitData(this, readData);
+            processPerFinalAllPointsSample(splitProcessObj);
+        }
     }
 
     // Base Player class that target renderers use
@@ -774,7 +869,7 @@ namespace CreaturePackModule
         public byte[] render_colors;
         public float[] render_points;
         int renders_base_size;
-        Dictionary<string, float> runTimeMap;
+        public Dictionary<string, float> runTimeMap;
         public bool isPlaying, isLooping;
         public string activeAnimationName, prevAnimationName;
         float animBlendFactor, animBlendDelta;
@@ -911,8 +1006,8 @@ namespace CreaturePackModule
                 CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                 CreatureTimeSample high_data = cur_clip.timeSamplesMap[cur_clip_info.secondSampleIdx];
 
-                float[] anim_low_points = (float[])data.fileData[low_data.getAnimPointsOffset()];
-                float[] anim_high_points = (float[])data.fileData[high_data.getAnimPointsOffset()];
+                float[] anim_low_points = (float[])cur_clip.fileData[low_data.getAnimPointsOffset()];
+                float[] anim_high_points = (float[])cur_clip.fileData[high_data.getAnimPointsOffset()];
                 
                 for (var i = 0; i < renders_base_size; i++)
                 {
@@ -936,8 +1031,8 @@ namespace CreaturePackModule
                 CreatureTimeSample active_low_data = active_clip.timeSamplesMap[active_clip_info.firstSampleIdx];
                 CreatureTimeSample active_high_data = active_clip.timeSamplesMap[active_clip_info.secondSampleIdx];
 
-                float[] active_anim_low_points = (float[])data.fileData[active_low_data.getAnimPointsOffset()];
-                float[] active_anim_high_points = (float[])data.fileData[active_high_data.getAnimPointsOffset()];
+                float[] active_anim_low_points = (float[])active_clip.fileData[active_low_data.getAnimPointsOffset()];
+                float[] active_anim_high_points = (float[])active_clip.fileData[active_high_data.getAnimPointsOffset()];
                 
                 // Previous Clip
                 var prev_clip =  data.animClipMap[prevAnimationName];
@@ -946,8 +1041,8 @@ namespace CreaturePackModule
                 CreatureTimeSample prev_low_data = prev_clip.timeSamplesMap[prev_clip_info.firstSampleIdx];
                 CreatureTimeSample prev_high_data = prev_clip.timeSamplesMap[prev_clip_info.secondSampleIdx];
 
-                float[] prev_anim_low_points = (float[])data.fileData[prev_low_data.getAnimPointsOffset()];
-                float[] prev_anim_high_points = (float[])data.fileData[prev_high_data.getAnimPointsOffset()];
+                float[] prev_anim_low_points = (float[])prev_clip.fileData[prev_low_data.getAnimPointsOffset()];
+                float[] prev_anim_high_points = (float[])prev_clip.fileData[prev_high_data.getAnimPointsOffset()];
 
                 for (var i = 0; i < renders_base_size; i++)
                 {
@@ -976,8 +1071,8 @@ namespace CreaturePackModule
                 CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                 CreatureTimeSample high_data = cur_clip.timeSamplesMap[cur_clip_info.secondSampleIdx];
 
-                object[] anim_low_colors = (object[])data.fileData[low_data.getAnimColorsOffset()];
-                object[] anim_high_colors = (object[])data.fileData[high_data.getAnimColorsOffset()];
+                object[] anim_low_colors = (object[])cur_clip.fileData[low_data.getAnimColorsOffset()];
+                object[] anim_high_colors = (object[])cur_clip.fileData[high_data.getAnimColorsOffset()];
 
                 if ((anim_low_colors.Length == getRenderColorsLength())
                     && (anim_high_colors.Length == getRenderColorsLength())) {
@@ -997,7 +1092,7 @@ namespace CreaturePackModule
                     var cur_clip =  data.animClipMap[activeAnimationName];
                     var cur_clip_info = cur_clip.sampleTime(getRunTime());
                     CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
-                    object[] anim_uvs = (object[])data.fileData[low_data.getAnimUvsOffset()];
+                    object[] anim_uvs = (object[])cur_clip.fileData[low_data.getAnimUvsOffset()];
 
                     if (anim_uvs.Length == getRenderUVsLength())
                     {

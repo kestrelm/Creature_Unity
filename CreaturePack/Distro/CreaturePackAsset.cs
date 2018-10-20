@@ -332,6 +332,23 @@ public class CreaturePackMetaData
     }
 }
 
+public class CreaturePackSplitAnimAsset : MonoBehaviour
+{
+    public TextAsset creaturePackSplitAnimBytes = null;
+
+#if UNITY_EDITOR
+    [MenuItem("GameObject/CreaturePack/CreaturePackSplitAnimAsset")]
+    static CreaturePackSplitAnimAsset CreateCreaturePackSplitAnimAsset()
+    {
+        GameObject newObj = new GameObject();
+        newObj.name = "New CreaturePack Split Anim Asset";
+        CreaturePackSplitAnimAsset new_asset;
+        new_asset = newObj.AddComponent<CreaturePackSplitAnimAsset>() as CreaturePackSplitAnimAsset;
+        return new_asset;
+    }
+#endif
+
+}
 
 public class CreaturePackAsset : MonoBehaviour {
     public TextAsset creaturePackBytes = null, creatureMetaJSON = null;
