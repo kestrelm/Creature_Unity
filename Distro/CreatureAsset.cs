@@ -290,6 +290,7 @@ public class CreatureAsset : MonoBehaviour
                 skin_swap_names,
                 morph_poses,
                 vertex_attachments);
+            creature_meta_data.updateRegionColors(creature_manager.animations);
 		}
 
 		return creature_manager;

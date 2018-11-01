@@ -74,6 +74,15 @@ namespace CreatureModule
 
         public MorphData morph_data = new MorphData();
 
+        // Anim Color Data
+        public class AnimColorData
+        {
+            public int frame;
+            public byte r, g, b;
+        }
+
+        public Dictionary<String, Dictionary<String, List<AnimColorData>>> anim_region_colors = 
+            new Dictionary<string, Dictionary<string, List<AnimColorData>>>();
         public CreatureMetaData()
         {
             mesh_map = new Dictionary<int, Tuple<int, int>>();
@@ -107,6 +116,45 @@ namespace CreatureModule
             }
 
             return new UnityEngine.Vector3(0, 0, 0);
+        }
+
+        public void updateRegionColors(Dictionary<String, CreatureAnimation> animations)
+        {
+            if(anim_region_colors.Count == 0)
+            {
+                return;
+            }
+
+            foreach(var cur_pair in animations)
+            {
+                var clip_name = cur_pair.Key;
+                var clip_anim = cur_pair.Value;
+                if (anim_region_colors.ContainsKey(clip_name))
+                {
+                    var clip_regions_data = anim_region_colors[clip_name];
+                    var opacity_cache = clip_anim.opacity_cache;
+                    var opacity_table = opacity_cache.opacity_cache_table;
+                    for (int m = opacity_cache.getStartTime(); m <= opacity_cache.getEndime(); m++)
+                    {
+                        var idx = opacity_cache.getIndexByTime(m);
+                        var regions_data = opacity_table[idx];
+                        foreach (var cur_region in regions_data)
+                        {
+                            if (clip_regions_data.ContainsKey(cur_region.getKey()))
+                            {
+                                var read_anim_data = clip_regions_data[cur_region.getKey()];
+                                var read_colors_data = read_anim_data[idx];
+                                if (read_colors_data.frame == m)
+                                {
+                                    cur_region.red = (float)(read_colors_data.r) / 255.0f * 100.0f;
+                                    cur_region.green = (float)(read_colors_data.g) / 255.0f * 100.0f;
+                                    cur_region.blue = (float)(read_colors_data.b) / 255.0f * 100.0f;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public void buildSkinSwapIndices(
@@ -1100,6 +1148,60 @@ namespace CreatureModule
 
                     meta_data.vertex_attachments[cur_name] = cur_idx;
                     vertex_attachments.Add(cur_name);
+                }
+            }
+
+            // Animated Region Colors
+            meta_data.anim_region_colors.Clear();
+            if(json_dict.ContainsKey("AnimRegionColors"))
+            {
+                var region_colors_node = (Dictionary<string, object>)json_dict["AnimRegionColors"];
+                foreach(var cur_data in region_colors_node)
+                {
+                    var anim_name = cur_data.Key;
+                    var regions_node = (Dictionary<string, object>)cur_data.Value;
+                    Dictionary<String, List<CreatureMetaData.AnimColorData>> regions_anim = 
+                        new Dictionary<string, List<CreatureMetaData.AnimColorData>>();
+                    foreach(var r_data in regions_node)
+                    {
+                        var r_name = r_data.Key;
+                        var b64_data = (String)r_data.Value;
+                        byte[] bytes_data = Convert.FromBase64String(b64_data);
+                        int chunk_size = sizeof(int) + (sizeof(byte) * 3);
+                        int chunk_num = (int)bytes_data.Length / chunk_size;
+                        List<CreatureMetaData.AnimColorData> colors_anim = new List<CreatureMetaData.AnimColorData>();
+                        for (int m = 0; m < chunk_num; m++)
+                        {
+                            int base_ptr = m * chunk_size;
+                            int read_ptr = base_ptr;
+
+                            int frame_val = 0;
+                            byte r_val = 0, g_val = 0, b_val = 0;
+
+                            frame_val = BitConverter.ToInt32(bytes_data, read_ptr);
+                            read_ptr += sizeof(int);
+
+                            r_val = bytes_data[read_ptr];
+                            read_ptr += sizeof(byte);
+
+                            g_val = bytes_data[read_ptr];
+                            read_ptr += sizeof(byte);
+
+                            b_val = bytes_data[read_ptr];
+                            read_ptr += sizeof(byte);
+
+                            CreatureMetaData.AnimColorData color_data = new CreatureMetaData.AnimColorData();
+                            color_data.frame = frame_val;
+                            color_data.r = r_val;
+                            color_data.g = g_val;
+                            color_data.b = b_val;
+
+                            colors_anim.Add(color_data);
+                        }
+
+                        regions_anim.Add(r_name, colors_anim);
+                    }
+                    meta_data.anim_region_colors.Add(anim_name, regions_anim);
                 }
             }
         }
@@ -2903,13 +3005,18 @@ namespace CreatureModule
                     read_val = 100.0f;
                 }
 
-                byte set_opacity = (byte)(read_val / 100.0f * 255.0f);
+                float opacity_factor = read_val / 100.0f;
+                byte set_opacity = (byte)(opacity_factor * 255.0f);
+                byte set_r = (byte)(cur_region.red / 100.0f * opacity_factor * 255.0f);
+                byte set_g = (byte)(cur_region.green / 100.0f * opacity_factor * 255.0f);
+                byte set_b = (byte)(cur_region.blue / 100.0f * opacity_factor * 255.0f);
+
                 int cur_rgba_index = cur_region.getStartPtIndex() * 4;
                 for (int j = 0; j < cur_region.getNumPts(); j++)
                 {
-                    target_creature.render_colours[cur_rgba_index] = set_opacity;
-                    target_creature.render_colours[cur_rgba_index + 1] = set_opacity;
-                    target_creature.render_colours[cur_rgba_index + 2] = set_opacity;
+                    target_creature.render_colours[cur_rgba_index] = set_r;
+                    target_creature.render_colours[cur_rgba_index + 1] = set_g;
+                    target_creature.render_colours[cur_rgba_index + 2] = set_b;
                     target_creature.render_colours[cur_rgba_index + 3] = set_opacity;
 
                     cur_rgba_index += 4;

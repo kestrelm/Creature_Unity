@@ -261,6 +261,11 @@ public class CreatureGameController : MonoBehaviour
     public UnityEngine.Vector3 GetVertexAttachmentPoint(string name_in)
     {
         var cur_meta_data = creature_renderer.creature_asset.creature_meta_data;
+        if(cur_meta_data == null)
+        {
+            return new UnityEngine.Vector3(0, 0, 0);
+        }
+
         var char_space_pt = cur_meta_data.getVertexAttachment(name_in, creature_renderer.creature_manager.GetCreature());
         return TransformToCreaturePt(char_space_pt);
     }

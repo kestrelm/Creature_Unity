@@ -687,6 +687,7 @@ namespace MeshBoneUtil
 		public XnaGeometry.Vector2 uv_warp_local_offset, uv_warp_global_offset, uv_warp_scale;
 		public List<XnaGeometry.Vector2> uv_warp_ref_uvs;
 		public float opacity;
+        public float red, green, blue;
 		public Dictionary<string, List<float> > normal_weight_map;
 		public List<List<float> > fast_normal_weight_map;
 		public List<MeshBone> fast_bones_map;
@@ -1294,14 +1295,18 @@ namespace MeshBoneUtil
 	public class MeshOpacityCache {
 		public string key;
 		public float opacity;
+        public float red, green, blue;
 
 		public MeshOpacityCache(string key_in)
 		{
 			key = key_in;
 			opacity = 100.0f;
-		}
-		
-		public void setOpacity(float value_in)
+            red = 100.0f;
+            green = 100.0f;
+            blue = 100.0f;
+        }
+
+        public void setOpacity(float value_in)
 		{
 			opacity = value_in;
 		}
@@ -1795,8 +1800,11 @@ namespace MeshBoneUtil
 				
 				MeshRenderRegion set_region = regions_map[cur_key];
 				set_region.opacity = base_data.getOpacity();
-			}
-		}
+                set_region.red = base_data.red;
+                set_region.green = base_data.green;
+                set_region.blue = base_data.blue;
+            }
+        }
 		
 		public bool allReady()
 		{
