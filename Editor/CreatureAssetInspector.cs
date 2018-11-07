@@ -86,39 +86,37 @@ public class CreatureAssetInspector : Editor {
 	void UpdateData()
 	{
 		CreatureAsset creature_asset = (CreatureAsset)target;
+        creature_asset.ResetState();
 
-		TextAsset text_asset = (TextAsset)creatureJSON.objectReferenceValue;
-		if (text_asset) {
+        TextAsset text_asset = (TextAsset)creatureJSON.objectReferenceValue;
+        creature_asset.creatureJSON = text_asset;
+        if (text_asset) {
 			if (text_asset.text.Length > 0) {
-				creature_asset.ResetState ();
-				creature_asset.creatureJSON = text_asset;
 				FillAnimationNames ();
 			}
 		}
 
 		TextAsset compressed_text_asset = (TextAsset)compressedCreatureJSON.objectReferenceValue;
-		if (compressed_text_asset) {
+        creature_asset.compressedCreatureJSON = compressed_text_asset;
+        if (compressed_text_asset) {
 			if (compressed_text_asset.text.Length > 0) {
-				creature_asset.ResetState ();
-				creature_asset.compressedCreatureJSON = compressed_text_asset;
 				FillAnimationNames ();
 			} 
 		}
 
 		TextAsset flat_text_asset = (TextAsset)flatCreatureData.objectReferenceValue;
-		if (flat_text_asset) {
+        creature_asset.flatCreatureData = flat_text_asset;
+        if (flat_text_asset) {
 			if (flat_text_asset.text.Length > 0) {
-				creature_asset.ResetState ();
-				creature_asset.flatCreatureData = flat_text_asset;
 				FillAnimationNames ();
 			} 
 		}
 
 		TextAsset meta_text_asset = (TextAsset)creatureMetaJSON.objectReferenceValue;
-		if (meta_text_asset) {
+        creature_asset.creatureMetaJSON = meta_text_asset;
+        if (meta_text_asset) {
 			if (meta_text_asset.text.Length > 0) {
                 creature_asset.creature_manager = null;
-				creature_asset.creatureMetaJSON = meta_text_asset;
 			} 
 		}
 
