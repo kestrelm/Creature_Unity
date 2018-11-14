@@ -191,7 +191,7 @@ public class CreatureCompositePlayer
 
         pack_player.isLooping = true;
         pack_player.isPlaying = true;
-        pack_player.stepTime(delta_step,"");
+        pack_player.stepTime(delta_step);
 
         var post_time = pack_player.getRunTime("");
 

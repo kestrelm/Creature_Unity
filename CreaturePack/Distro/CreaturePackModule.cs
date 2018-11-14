@@ -1000,10 +1000,20 @@ namespace CreaturePackModule
         }
 
         // Steps the animation by a delta time
-        public void stepTime(float deltaTime, string animName)
+        public void stepTime(float deltaTime)
         {
-            setRunTime(getRunTime(animName) + deltaTime, animName);
-            
+            if (activeAnimationName == prevAnimationName)
+            {
+                // No Blending
+                setRunTime(getRunTime(activeAnimationName) + deltaTime, activeAnimationName);
+            }
+            else
+            {
+                // Blending
+                setRunTime(getRunTime(activeAnimationName) + deltaTime, activeAnimationName);
+                setRunTime(getRunTime(prevAnimationName) + deltaTime, prevAnimationName);
+            }
+
             // update blending
             animBlendFactor += animBlendDelta;
             if (animBlendFactor > 1)
