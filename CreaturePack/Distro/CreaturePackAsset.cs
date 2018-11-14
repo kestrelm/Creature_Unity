@@ -147,7 +147,7 @@ public class CreatureCompositePlayer
         {
             var sublist = composite_clips[active_name];
             pack_player.setActiveAnimation(sublist[idx].name);
-            pack_player.setRunTime(sublist[idx].start_frame);
+            pack_player.setRunTime(sublist[idx].start_frame, "");
         }
     }
 
@@ -178,7 +178,7 @@ public class CreatureCompositePlayer
     public void update(float delta_step, CreaturePackPlayer pack_player, bool should_loop)
     {
         var sublist = composite_clips[active_name];
-        var pre_time = pack_player.getRunTime();
+        var pre_time = pack_player.getRunTime("");
 
         if(!should_loop)
         {
@@ -191,9 +191,9 @@ public class CreatureCompositePlayer
 
         pack_player.isLooping = true;
         pack_player.isPlaying = true;
-        pack_player.stepTime(delta_step);
+        pack_player.stepTime(delta_step,"");
 
-        var post_time = pack_player.getRunTime();
+        var post_time = pack_player.getRunTime("");
 
         if ((post_time < pre_time) || (post_time > sublist[active_idx].end_frame))
         {
@@ -212,7 +212,7 @@ public class CreatureCompositePlayer
             }
             else
             {
-                pack_player.setRunTime(sublist[active_idx].end_frame);
+                pack_player.setRunTime(sublist[active_idx].end_frame, "");
             }
         }
     }

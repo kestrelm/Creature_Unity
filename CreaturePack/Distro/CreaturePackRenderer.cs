@@ -429,7 +429,7 @@ public class CreaturePackRenderer : MonoBehaviour {
         {
             pack_player.isLooping = should_loop;
             pack_player.isPlaying = true;
-            pack_player.stepTime(time_delta);
+            pack_player.stepTime(time_delta, "");
         }
 
         pack_player.syncRenderData();

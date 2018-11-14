@@ -979,20 +979,30 @@ namespace CreaturePackModule
             }
         }
 
-        public void setRunTime(float timeIn)
-        {	
-            runTimeMap[activeAnimationName] = data.animClipMap[activeAnimationName].correctTime(timeIn, isLooping);
+        public string resolveAnimName(string nameIn)
+        {
+            if (nameIn.Length == 0)
+            {
+                return activeAnimationName;
+            }
+
+            return nameIn;
         }
 
-        public float getRunTime()
+        public void setRunTime(float timeIn, string animName)
+        {	
+            runTimeMap[resolveAnimName(animName)] = data.animClipMap[resolveAnimName(animName)].correctTime(timeIn, isLooping);
+        }
+
+        public float getRunTime(string animName)
         {
-            return runTimeMap[activeAnimationName];
+            return runTimeMap[resolveAnimName(animName)];
         }
 
         // Steps the animation by a delta time
-        public void stepTime(float deltaTime)
+        public void stepTime(float deltaTime, string animName)
         {
-            setRunTime(getRunTime() + deltaTime);
+            setRunTime(getRunTime(animName) + deltaTime, animName);
             
             // update blending
             animBlendFactor += animBlendDelta;
@@ -1015,7 +1025,7 @@ namespace CreaturePackModule
             {
                 var cur_clip = data.animClipMap[activeAnimationName];
                 // no blending
-                var cur_clip_info = cur_clip.sampleTime(getRunTime());
+                var cur_clip_info = cur_clip.sampleTime(getRunTime(activeAnimationName));
                 CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                 CreatureTimeSample high_data = cur_clip.timeSamplesMap[cur_clip_info.secondSampleIdx];
 
@@ -1040,7 +1050,7 @@ namespace CreaturePackModule
                 // Active Clip
                 var active_clip =  data.animClipMap[activeAnimationName];
                 
-                var active_clip_info = active_clip.sampleTime(getRunTime());
+                var active_clip_info = active_clip.sampleTime(getRunTime(activeAnimationName));
                 CreatureTimeSample active_low_data = active_clip.timeSamplesMap[active_clip_info.firstSampleIdx];
                 CreatureTimeSample active_high_data = active_clip.timeSamplesMap[active_clip_info.secondSampleIdx];
 
@@ -1050,7 +1060,7 @@ namespace CreaturePackModule
                 // Previous Clip
                 var prev_clip =  data.animClipMap[prevAnimationName];
                 
-                var prev_clip_info = prev_clip.sampleTime(getRunTime());
+                var prev_clip_info = prev_clip.sampleTime(getRunTime(prevAnimationName));
                 CreatureTimeSample prev_low_data = prev_clip.timeSamplesMap[prev_clip_info.firstSampleIdx];
                 CreatureTimeSample prev_high_data = prev_clip.timeSamplesMap[prev_clip_info.secondSampleIdx];
 
@@ -1080,7 +1090,7 @@ namespace CreaturePackModule
             {
                 var cur_clip =  data.animClipMap[activeAnimationName];
                 // no blending
-                var cur_clip_info = cur_clip.sampleTime(getRunTime());
+                var cur_clip_info = cur_clip.sampleTime(getRunTime(activeAnimationName));
                 CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                 CreatureTimeSample high_data = cur_clip.timeSamplesMap[cur_clip_info.secondSampleIdx];
 
@@ -1103,7 +1113,7 @@ namespace CreaturePackModule
                 // UVs
                 {
                     var cur_clip =  data.animClipMap[activeAnimationName];
-                    var cur_clip_info = cur_clip.sampleTime(getRunTime());
+                    var cur_clip_info = cur_clip.sampleTime(getRunTime(activeAnimationName));
                     CreatureTimeSample low_data = cur_clip.timeSamplesMap[cur_clip_info.firstSampleIdx];
                     object[] anim_uvs = (object[])cur_clip.fileData[low_data.getAnimUvsOffset()];
 

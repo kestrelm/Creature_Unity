@@ -80,7 +80,7 @@ public class CreaturePackStateMachineBehavior : StateMachineBehaviour
                 if (pack_data.animClipMap.ContainsKey(play_animation_name))
                 {
                     creature_renderer.pack_player.isLooping = false;
-                    creature_renderer.pack_player.setRunTime(custom_start_frame);
+                    creature_renderer.pack_player.setRunTime(custom_start_frame, "");
                     animator.SetBool("CustomRangeDone", false);
                 }
             }
@@ -93,7 +93,7 @@ public class CreaturePackStateMachineBehavior : StateMachineBehaviour
         {
             var curTransition = animator.GetAnimatorTransitionInfo(layerIndex);
             var pack_player = pack_renderer.pack_player;
-            var cur_frame = pack_player.getRunTime();
+            var cur_frame = pack_player.getRunTime("");
             if(cur_frame >= custom_end_frame)
             {
                 // Please set a boolean in your animator transition condition called
