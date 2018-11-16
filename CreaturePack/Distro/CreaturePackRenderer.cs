@@ -206,13 +206,13 @@ public class CreaturePackRenderer : MonoBehaviour {
         swap_mesh = !swap_mesh;
     }
 
-    public void Awake()
+    public void InitRenderer()
     {
         Reset();
         InitData();
 
         var cur_animator = GetComponent<Animator>();
-        if(cur_animator)
+        if (cur_animator)
         {
             CreaturePackStateMachineBehavior[] all_behaviors = cur_animator.GetBehaviours<CreaturePackStateMachineBehavior>();
             for (int i = 0; i < all_behaviors.Length; i++)
@@ -220,6 +220,16 @@ public class CreaturePackRenderer : MonoBehaviour {
                 all_behaviors[i].pack_renderer = this;
             }
         }
+    }
+
+    public void Awake()
+    {
+        InitRenderer();
+    }
+
+    public void OnEnable()
+    {
+        InitRenderer();
     }
 
     public void CreateRenderingData()
