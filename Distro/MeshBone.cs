@@ -265,8 +265,10 @@ namespace MeshBoneUtil
 		public XnaGeometry.Vector4 world_start_pt, world_end_pt;
 		public XnaGeometry.Matrix world_delta_mat;
 		public dualQuat world_dq;
-		
-		public List<MeshBone> children;
+        private XnaGeometry.Vector4 calc_tangent = new XnaGeometry.Vector4(0, 0, 0, 0);
+        private XnaGeometry.Vector4 calc_normal = new XnaGeometry.Vector4(0, 0, 0, 0);
+
+        public List<MeshBone> children;
 
 		public MeshBone(
 			string key_in,
@@ -334,11 +336,10 @@ namespace MeshBoneUtil
 		
 		public void calcRestData()
 		{
-			Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4> 
-			calc = computeDirs(local_rest_start_pt, local_rest_end_pt);
+            computeDirs(local_rest_start_pt, local_rest_end_pt, ref calc_tangent, ref calc_normal);
 
-			local_rest_dir = calc.Item1;
-			local_rest_normal_dir = calc.Item2;
+			local_rest_dir = calc_tangent;
+			local_rest_normal_dir = calc_normal;
 			
 			computeRestLength();
 		}
@@ -505,9 +506,9 @@ namespace MeshBoneUtil
 		
 		public void computeWorldDeltaTransforms()
 		{
-			Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4> calc = computeDirs(world_start_pt, world_end_pt);
-			XnaGeometry.Vector3 cur_tangent = new XnaGeometry.Vector3(calc.Item1.X, calc.Item1.Y, 0);
-			XnaGeometry.Vector3 cur_normal = new XnaGeometry.Vector3(calc.Item2.X, calc.Item2.Y, 0);
+			computeDirs(world_start_pt, world_end_pt, ref calc_tangent, ref calc_normal);
+			XnaGeometry.Vector3 cur_tangent = new XnaGeometry.Vector3(calc_tangent.X, calc_tangent.Y, 0);
+			XnaGeometry.Vector3 cur_normal = new XnaGeometry.Vector3(calc_normal.X, calc_normal.Y, 0);
 			XnaGeometry.Vector3 cur_binormal = new XnaGeometry.Vector3(local_binormal_dir.X, local_binormal_dir.Y, local_binormal_dir.Z);
 
 			XnaGeometry.Matrix cur_rotate = XnaGeometry.Matrix.Identity;
@@ -653,15 +654,16 @@ namespace MeshBoneUtil
 			return tag_id;
 		}
 
-		public Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4> 
-			computeDirs(XnaGeometry.Vector4 start_pt, XnaGeometry.Vector4 end_pt)
+		public void computeDirs(
+            XnaGeometry.Vector4 start_pt,
+            XnaGeometry.Vector4 end_pt,
+            ref XnaGeometry.Vector4 tangent,
+            ref XnaGeometry.Vector4 normal)
 		{
-			XnaGeometry.Vector4 tangent = end_pt - start_pt;
+			tangent = end_pt - start_pt;
 			tangent.Normalize();
 
-			XnaGeometry.Vector4 normal = Utils.rotateVec4_90(tangent);
-			
-			return new Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4> (tangent, normal);
+			normal = Utils.rotateVec4_90(tangent);
 		}
 		
 		public void computeRestLength()
