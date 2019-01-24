@@ -85,23 +85,23 @@ namespace MeshBoneUtil
 
     public override bool Equals(object o)
     {
-      if (o.GetType() != typeof(Tuple<T1, T2>)) {
+      if (o.GetType() != typeof(MeshBoneUtil.Tuple<T1, T2>)) {
         return false;
       }
 
-      var other = (Tuple<T1, T2>) o;
+      var other = (MeshBoneUtil.Tuple<T1, T2>) o;
 
       return this == other;
     }
 
-    public static bool operator==(Tuple<T1, T2> a, Tuple<T1, T2> b)
+    public static bool operator==(MeshBoneUtil.Tuple<T1, T2> a, MeshBoneUtil.Tuple<T1, T2> b)
     {
       return 
         a.item1.Equals(b.item1) && 
         a.item2.Equals(b.item2);            
     }
 
-    public static bool operator!=(Tuple<T1, T2> a, Tuple<T1, T2> b)
+    public static bool operator!=(MeshBoneUtil.Tuple<T1, T2> a, MeshBoneUtil.Tuple<T1, T2> b)
     {
       return !(a == b);
     }

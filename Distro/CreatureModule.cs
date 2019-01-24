@@ -46,7 +46,7 @@ namespace CreatureModule
     // Meta Data
     public class CreatureMetaData
     {
-        public Dictionary<int, Tuple<int, int>> mesh_map;
+        public Dictionary<int, MeshBoneUtil.Tuple<int, int>> mesh_map;
         public Dictionary<String, Dictionary<int, List<int>>> anim_order_map;
         public Dictionary<String, Dictionary<int, String>> anim_events_map;
         public Dictionary<String, HashSet<String>> skin_swaps;
@@ -57,12 +57,12 @@ namespace CreatureModule
         {
             public List<byte[]> morph_spaces = new List<byte[]>();
             public String center_clip;
-            public List<Tuple<String, UnityEngine.Vector2>> morph_clips = new List<Tuple<string, UnityEngine.Vector2>>();
+            public List<MeshBoneUtil.Tuple<String, UnityEngine.Vector2>> morph_clips = new List<MeshBoneUtil.Tuple<string, UnityEngine.Vector2>>();
             public float[] weights;
             public UnityEngine.Vector2 bounds_min, bounds_max;
             public int morph_res;
-            public List<Tuple<String, float>> play_anims_data = new List<Tuple<string, float>>();
-            public Tuple<String, float> play_center_anim_data;
+            public List<MeshBoneUtil.Tuple<String, float>> play_anims_data = new List<MeshBoneUtil.Tuple<string, float>>();
+            public MeshBoneUtil.Tuple<String, float> play_center_anim_data;
             public List<float> play_pts = new List<float>();
             public UnityEngine.Vector2 play_img_pt;
 
@@ -85,7 +85,7 @@ namespace CreatureModule
             new Dictionary<string, Dictionary<string, List<AnimColorData>>>();
         public CreatureMetaData()
         {
-            mesh_map = new Dictionary<int, Tuple<int, int>>();
+            mesh_map = new Dictionary<int, MeshBoneUtil.Tuple<int, int>>();
             anim_order_map = new Dictionary<String, Dictionary<int, List<int>>>();
             anim_events_map = new Dictionary<String, Dictionary<int, String>>();
             skin_swaps = new Dictionary<string, HashSet<string>>();
@@ -430,12 +430,12 @@ namespace CreatureModule
             if (morph_data.play_anims_data.Count == 0)
             {
                 var all_clips = manager_in.GetAllAnimations();
-                morph_data.play_anims_data = new List<Tuple<string, float>>();
+                morph_data.play_anims_data = new List<MeshBoneUtil.Tuple<string, float>>();
                 for (int i = 0; i < morph_data.morph_clips.Count; i++)
                 {
                     var cur_clip_name = morph_data.morph_clips[i].Item1;
                     var cur_start_time = all_clips[cur_clip_name].start_time;
-                    var cur_play_data = new Tuple<string, float>(cur_clip_name, cur_start_time);
+                    var cur_play_data = new MeshBoneUtil.Tuple<string, float>(cur_clip_name, cur_start_time);
                     morph_data.play_anims_data.Add(cur_play_data);
                 }
 
@@ -443,7 +443,7 @@ namespace CreatureModule
                 {
                     var center_clip_name = morph_data.center_clip;
                     var center_start_time = all_clips[center_clip_name].start_time;
-                    morph_data.play_center_anim_data = new Tuple<string, float>(center_clip_name, center_start_time);
+                    morph_data.play_center_anim_data = new MeshBoneUtil.Tuple<string, float>(center_clip_name, center_start_time);
                 }
 
                 morph_data.play_pts = new List<float>(new float[creature_in.total_num_pts * 3]);
@@ -470,7 +470,7 @@ namespace CreatureModule
                 float inv_center_ratio = 1.0f - center_ratio;
                 updateMorphPoints(creature_in, inv_center_ratio);
                 morph_data.play_center_anim_data = 
-                    new Tuple<string, float>(clip_name, manager_in.getRunTime());
+                    new MeshBoneUtil.Tuple<string, float>(clip_name, manager_in.getRunTime());
             }
 
             for (int i = 0; i < morph_data.play_anims_data.Count; i++)
@@ -482,7 +482,7 @@ namespace CreatureModule
                 manager_in.Update(delta_step);
 
                 morph_data.play_anims_data[i] = 
-                    new Tuple<string, float>(clip_name, manager_in.getRunTime());
+                    new MeshBoneUtil.Tuple<string, float>(clip_name, manager_in.getRunTime());
                 updateMorphPoints(
                     creature_in,
                     (center_ratio > 0) ? (morph_data.weights[i] * center_ratio) : morph_data.weights[i]);
@@ -952,7 +952,7 @@ namespace CreatureModule
                     int start_index = Convert.ToInt32(cur_obj["startIndex"]);
                     int end_index = Convert.ToInt32(cur_obj["endIndex"]);
 
-                    meta_data.mesh_map[region_id] = new Tuple<int, int>(start_index, end_index);
+                    meta_data.mesh_map[region_id] = new MeshBoneUtil.Tuple<int, int>(start_index, end_index);
                 }
             }
 
@@ -1093,7 +1093,7 @@ namespace CreatureModule
                     meta_data.morph_data.bounds_min.y = Math.Min(meta_data.morph_data.bounds_min.x, cur_pt.y);
                     meta_data.morph_data.bounds_max.y = Math.Max(meta_data.morph_data.bounds_max.x, cur_pt.y);
 
-                    meta_data.morph_data.morph_clips.Add(new Tuple<String, UnityEngine.Vector2>(cur_clip, cur_pt));
+                    meta_data.morph_data.morph_clips.Add(new MeshBoneUtil.Tuple<String, UnityEngine.Vector2>(cur_clip, cur_pt));
                     morph_poses.Add(cur_clip);
                 }
 
@@ -1114,7 +1114,7 @@ namespace CreatureModule
                         cur_pt.y = Math.Min(Math.Max(0.0f, cur_pt.y), (float)(meta_data.morph_data.morph_res - 1));
 
                         meta_data.morph_data.morph_clips[j] =
-                            new Tuple<string, UnityEngine.Vector2>(cur_name, cur_pt);
+                            new MeshBoneUtil.Tuple<string, UnityEngine.Vector2>(cur_name, cur_pt);
                     }
                 }
 
@@ -1397,7 +1397,7 @@ namespace CreatureModule
         {
             MeshBone root_bone = null;
             Dictionary<string, object> base_obj = (Dictionary<string, object>)json_obj[key];
-            Dictionary<int, Tuple<MeshBone, List<int>>> bone_data = new Dictionary<int, Tuple<MeshBone, List<int>>>();
+            Dictionary<int, MeshBoneUtil.Tuple<MeshBone, List<int>>> bone_data = new Dictionary<int, Tuple<MeshBone, List<int>>>();
             Dictionary<int, int> child_set = new Dictionary<int, int>();
 
             // layout bones
@@ -1423,7 +1423,7 @@ namespace CreatureModule
                 new_bone.calcRestData();
                 new_bone.setTagId(cur_id);
 
-                bone_data[cur_id] = new Tuple<MeshBone, List<int>>(new_bone, cur_children_ids);
+                bone_data[cur_id] = new MeshBoneUtil.Tuple<MeshBone, List<int>>(new_bone, cur_children_ids);
 
                 foreach (int cur_child_id in cur_children_ids)
                 {
@@ -1432,7 +1432,7 @@ namespace CreatureModule
             }
 
             // Find root
-            foreach (KeyValuePair<int, Tuple<MeshBone, List<int>>> cur_data in bone_data)
+            foreach (KeyValuePair<int, MeshBoneUtil.Tuple<MeshBone, List<int>>> cur_data in bone_data)
             {
                 int cur_id = cur_data.Key;
                 if (child_set.ContainsKey(cur_id) == false)
@@ -1444,7 +1444,7 @@ namespace CreatureModule
             }
 
             // construct hierarchy
-            foreach (KeyValuePair<int, Tuple<MeshBone, List<int>>> cur_data in bone_data)
+            foreach (KeyValuePair<int, MeshBoneUtil.Tuple<MeshBone, List<int>>> cur_data in bone_data)
             {
                 MeshBone cur_bone = cur_data.Value.Item1;
                 List<int> children_ids = cur_data.Value.Item2;
@@ -1510,7 +1510,7 @@ namespace CreatureModule
             return ret_regions;
         }
 
-        public static Tuple<int, int> GetStartEndTimes(Dictionary<string, object> json_obj,
+        public static MeshBoneUtil.Tuple<int, int> GetStartEndTimes(Dictionary<string, object> json_obj,
                                                           string key)
         {
             int start_time = 0;
@@ -2105,7 +2105,7 @@ namespace CreatureModule
             Dictionary<string, object> json_anim_base = (Dictionary<string, object>)load_data["animation"];
             Dictionary<string, object> json_clip = (Dictionary<string, object>)json_anim_base[name_in];
 
-            Tuple<int, int> start_end_times = Utils.GetStartEndTimes(json_clip, "bones");
+            MeshBoneUtil.Tuple<int, int> start_end_times = Utils.GetStartEndTimes(json_clip, "bones");
             start_time = start_end_times.Item1;
             end_time = start_end_times.Item2;
 
@@ -2255,10 +2255,10 @@ namespace CreatureModule
     public class CreatureAnimBonesBlend
     {
         public List<CreatureBonesBlend> bones_blend = new List<CreatureBonesBlend>();
-        Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>> ref_bone_positions =
-            new Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>>();
-        Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>> final_bone_positions =
-            new Dictionary<string, Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>>();
+        Dictionary<string, MeshBoneUtil.Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>> ref_bone_positions =
+            new Dictionary<string, MeshBoneUtil.Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>>();
+        Dictionary<string, MeshBoneUtil.Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>> final_bone_positions =
+            new Dictionary<string, MeshBoneUtil.Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>>();
 
         public void update(
             Dictionary<string, MeshBoneUtil.MeshBone> bones_map,
@@ -2271,12 +2271,12 @@ namespace CreatureModule
             foreach (var cur_data in bones_map)
             {
                 ref_bone_positions[cur_data.Key] =
-                    new Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(
+                    new MeshBoneUtil.Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(
                         cur_data.Value.getWorldStartPt(),
                         cur_data.Value.getWorldEndPt());
 
                 final_bone_positions[cur_data.Key] =
-                    new Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(
+                    new MeshBoneUtil.Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(
                         cur_data.Value.getWorldStartPt(),
                         cur_data.Value.getWorldEndPt());
             }
@@ -2306,7 +2306,7 @@ namespace CreatureModule
                             cur_blend.blend_factor);
 
                     final_bone_positions[bone_name] =
-                        new Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(new_start, new_end);
+                        new MeshBoneUtil.Tuple<XnaGeometry.Vector4, XnaGeometry.Vector4>(new_start, new_end);
                 }
             }
 

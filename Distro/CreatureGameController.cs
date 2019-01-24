@@ -85,7 +85,7 @@ public class CreatureIKPacket : MonoBehaviour
     public bool ik_pos_angle = false;
     public String ik_bone1, ik_bone2;
     public List<MeshBone> carry_bones;
-    public List<Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>> bones_basis;
+    public List<MeshBoneUtil.Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>> bones_basis;
 
 #if UNITY_EDITOR
     [MenuItem("GameObject/Creature/CreatureIKPacket")]
@@ -158,7 +158,7 @@ public class CreatureIKPacket : MonoBehaviour
             return;
         }
 
-        bones_basis = new List<Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>>();
+        bones_basis = new List<MeshBoneUtil.Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>>();
         carry_bones = endeffector_bone.getAllChildren();
         carry_bones.RemoveAt(0); // Remove first end_effector bone, we do not want to carry that
 
@@ -182,7 +182,7 @@ public class CreatureIKPacket : MonoBehaviour
                 base_vec_v);
 
             var basis_pair =
-                new Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>(basis_start, basis_end);
+                new MeshBoneUtil.Tuple<XnaGeometry.Vector2, XnaGeometry.Vector2>(basis_start, basis_end);
 
             bones_basis.Add(basis_pair);
         }
