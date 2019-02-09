@@ -38,13 +38,13 @@ using XnaGeometry;
 
 namespace MeshBoneUtil
 {
-  public sealed class Tuple<T1, T2>
+  public sealed class CTuple<T1, T2>
   {
     private readonly T1 item1;
     private readonly T2 item2;
 
     /// <summary>
-    /// Retyurns the first element of the tuple
+    /// Retyurns the first element of the CTuple
     /// </summary>
     public T1 Item1
     {
@@ -52,7 +52,7 @@ namespace MeshBoneUtil
     }
 
     /// <summary>
-    /// Returns the second element of the tuple
+    /// Returns the second element of the CTuple
     /// </summary>
     public T2 Item2
     {
@@ -60,11 +60,11 @@ namespace MeshBoneUtil
     }
 
     /// <summary>
-    /// Create a new tuple value
+    /// Create a new CTuple value
     /// </summary>
-    /// <param name="item1">First element of the tuple</param>
-    /// <param name="second">Second element of the tuple</param>
-    public Tuple(T1 item1, T2 item2)
+    /// <param name="item1">First element of the CTuple</param>
+    /// <param name="second">Second element of the CTuple</param>
+    public CTuple(T1 item1, T2 item2)
     {
       this.item1 = item1;
       this.item2 = item2;
@@ -72,7 +72,7 @@ namespace MeshBoneUtil
 
     public override string ToString()
     {
-      return string.Format("Tuple({0}, {1})", Item1, Item2);
+      return string.Format("CTuple({0}, {1})", Item1, Item2);
     }
 
     public override int GetHashCode()
@@ -85,23 +85,23 @@ namespace MeshBoneUtil
 
     public override bool Equals(object o)
     {
-      if (o.GetType() != typeof(MeshBoneUtil.Tuple<T1, T2>)) {
+      if (o.GetType() != typeof(MeshBoneUtil.CTuple<T1, T2>)) {
         return false;
       }
 
-      var other = (MeshBoneUtil.Tuple<T1, T2>) o;
+      var other = (MeshBoneUtil.CTuple<T1, T2>) o;
 
       return this == other;
     }
 
-    public static bool operator==(MeshBoneUtil.Tuple<T1, T2> a, MeshBoneUtil.Tuple<T1, T2> b)
+    public static bool operator==(MeshBoneUtil.CTuple<T1, T2> a, MeshBoneUtil.CTuple<T1, T2> b)
     {
       return 
         a.item1.Equals(b.item1) && 
         a.item2.Equals(b.item2);            
     }
 
-    public static bool operator!=(MeshBoneUtil.Tuple<T1, T2> a, MeshBoneUtil.Tuple<T1, T2> b)
+    public static bool operator!=(MeshBoneUtil.CTuple<T1, T2> a, MeshBoneUtil.CTuple<T1, T2> b)
     {
       return !(a == b);
     }
