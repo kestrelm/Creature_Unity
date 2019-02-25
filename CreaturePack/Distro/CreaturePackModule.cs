@@ -41,6 +41,7 @@ using System.IO;
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CreaturePackModule
 {
@@ -877,6 +878,18 @@ namespace CreaturePackModule
     // Base Player class that target renderers use
     public class CreaturePackPlayer
     {
+        public class CreaturePackMeshRange
+        {
+            public int start_idx = 0;
+            public int end_idx = 0;
+
+            public CreaturePackMeshRange(int start_idx_in, int end_idx_in)
+            {
+                start_idx = start_idx_in;
+                end_idx = end_idx_in;
+            }
+        }
+
         public CreaturePackLoader data;
         public float[] render_uvs;
         public byte[] render_colors;
@@ -886,6 +899,7 @@ namespace CreaturePackModule
         public bool isPlaying, isLooping;
         public string activeAnimationName, prevAnimationName;
         float animBlendFactor, animBlendDelta;
+        public List<CreaturePackMeshRange> mesh_ranges = new List<CreaturePackMeshRange>();
 
         public CreaturePackPlayer(CreaturePackLoader dataIn)
         {
@@ -898,6 +912,8 @@ namespace CreaturePackModule
                     
             // create data buffers
             renders_base_size = data.getNumPoints() / 2;
+            mesh_ranges.Add(new CreaturePackMeshRange(0, renders_base_size - 1));
+
             render_points =new float[getRenderPointsLength()];
             render_uvs = new float[getRenderUVsLength()];
             render_colors = new byte[getRenderColorsLength()];
@@ -1042,16 +1058,21 @@ namespace CreaturePackModule
                 float[] anim_low_points = (float[])cur_clip.fileData[low_data.getAnimPointsOffset()];
                 float[] anim_high_points = (float[])cur_clip.fileData[high_data.getAnimPointsOffset()];
                 
-                for (var i = 0; i < renders_base_size; i++)
+                foreach (var cur_range in mesh_ranges)
                 {
-                    for(var j = 0; j < 2; j++)
+                    // for (var i = cur_range.start_idx; i <= cur_range.end_idx; i++) // This is the sequential version
+                    // This is the parallel version
+                    Parallel.For(cur_range.start_idx, cur_range.end_idx + 1, i =>
                     {
-                        var low_val = (float)(anim_low_points[i * 2 + j]);
-                        var high_val = (float)(anim_high_points[i * 2 + j]);
-                        render_points[i * 3 + j] = interpScalar(low_val, high_val, cur_clip_info.sampleFraction);                    
-                    }
-                    
-                    render_points[i * 3 + 2] = 0.0f;
+                        for (var j = 0; j < 2; j++)
+                        {
+                            var low_val = (float)(anim_low_points[i * 2 + j]);
+                            var high_val = (float)(anim_high_points[i * 2 + j]);
+                            render_points[i * 3 + j] = interpScalar(low_val, high_val, cur_clip_info.sampleFraction);
+                        }
+
+                        render_points[i * 3 + 2] = 0.0f;
+                    });
                 }
             }
             else {
@@ -1077,22 +1098,27 @@ namespace CreaturePackModule
                 float[] prev_anim_low_points = (float[])prev_clip.fileData[prev_low_data.getAnimPointsOffset()];
                 float[] prev_anim_high_points = (float[])prev_clip.fileData[prev_high_data.getAnimPointsOffset()];
 
-                for (var i = 0; i < renders_base_size; i++)
+                foreach (var cur_range in mesh_ranges)
                 {
-                    for(var j = 0; j < 2; j++)
+                        // for (var i = cur_range.start_idx; i <= cur_range.end_idx; i++) // This is the sequential version
+                        // This is the parallel version
+                    Parallel.For(cur_range.start_idx, cur_range.end_idx + 1, i =>
                     {
-                        var active_low_val = (float)(active_anim_low_points[i * 2 + j]);
-                        var active_high_val = (float)(active_anim_high_points[i * 2 + j]);
-                        var active_val =  interpScalar(active_low_val, active_high_val, active_clip_info.sampleFraction);
+                        for (var j = 0; j < 2; j++)
+                        {
+                            var active_low_val = (float)(active_anim_low_points[i * 2 + j]);
+                            var active_high_val = (float)(active_anim_high_points[i * 2 + j]);
+                            var active_val = interpScalar(active_low_val, active_high_val, active_clip_info.sampleFraction);
 
-                        var prev_low_val = (float)(prev_anim_low_points[i * 2 + j]);
-                        var prev_high_val = (float)(prev_anim_high_points[i * 2 + j]);
-                        var prev_val =  interpScalar(prev_low_val, prev_high_val, prev_clip_info.sampleFraction);
+                            var prev_low_val = (float)(prev_anim_low_points[i * 2 + j]);
+                            var prev_high_val = (float)(prev_anim_high_points[i * 2 + j]);
+                            var prev_val = interpScalar(prev_low_val, prev_high_val, prev_clip_info.sampleFraction);
 
-                        render_points[i * 3 + j] = interpScalar(prev_val, active_val, animBlendFactor);
-                    }
-                    
-                    render_points[i * 3 + 2] = 0.0f;
+                            render_points[i * 3 + j] = interpScalar(prev_val, active_val, animBlendFactor);
+                        }
+
+                        render_points[i * 3 + 2] = 0.0f;
+                    });
                 }
             }
             
@@ -1109,14 +1135,16 @@ namespace CreaturePackModule
 
                 if ((anim_low_colors.Length == getRenderColorsLength())
                     && (anim_high_colors.Length == getRenderColorsLength())) {
-                    for (var i = 0; i < getRenderColorsLength(); i++)
+                    // for (var i = 0; i < getRenderColorsLength(); i++) // This is the sequential version
+                    // This is the parallel version
+                    Parallel.For(0, getRenderColorsLength(), i =>
                     {
                         float low_val = (float)(int)(anim_low_colors[i]);
                         float high_val = (float)(int)(anim_high_colors[i]);
 
                         render_colors[i] = (byte)interpScalar(low_val, high_val, cur_clip_info.sampleFraction);
 
-                    }
+                    });
                 }
             }
         
@@ -1129,10 +1157,12 @@ namespace CreaturePackModule
 
                     if (anim_uvs.Length == getRenderUVsLength())
                     {
-                        for (var i = 0; i < getRenderUVsLength(); i++)
+                        //for (var i = 0; i < getRenderUVsLength(); i++) // This is the sequential version
+                        // This is the parallel version
+                        Parallel.For(0, getRenderUVsLength(), i =>
                         {
                             render_uvs[i] = (float)(anim_uvs[i]);
-                        }
+                        });
                     }
                 }		
             }

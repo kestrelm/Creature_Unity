@@ -312,19 +312,35 @@ public class CreaturePackMetaData
         skin_swap_indices.Clear();
 
         int offset = 0;
+        pack_player.mesh_ranges.Clear();
         foreach (var region_name in mesh_sorted_names)
         {
             if (swap_set.Contains(region_name))
             {
                 var num_indices = getNumMeshIndices(region_name);
                 var cur_range = mesh_map[region_name];
+                int min_idx = -1;
+                int max_idx = -1;
                 for (int j = 0; j < getNumMeshIndices(region_name); j++)
                 {
                     var local_idx = cur_range.Item1 + j;
-                    skin_swap_indices.Add((int)src_indices[local_idx]);
+                    var pt_indice = (int)src_indices[local_idx];
+                    skin_swap_indices.Add(pt_indice);
+
+                    if(min_idx < 0)
+                    {
+                        min_idx = pt_indice;
+                        max_idx = min_idx;
+                    }
+                    else
+                    {
+                        min_idx = Math.Min(min_idx, pt_indice);
+                        max_idx = Math.Max(max_idx, pt_indice);
+                    }
                 }
 
                 offset += num_indices;
+                pack_player.mesh_ranges.Add(new CreaturePackPlayer.CreaturePackMeshRange(min_idx, max_idx));
             }
         }
 
