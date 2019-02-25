@@ -22,6 +22,9 @@ Hummingbirds! is a demo done using the **Creature Pack Plugin**. It showcases an
 - Pure point cache, very high performance since no Bone Posing is done 
 - Lighweight, less files, less setup cost
 - Very useful for animating a TON of characters in Crowds situations
+- Optimized Point/UV/Colour Computation Code for Multicore Processors
+- Supports Skin Swapping
+- Supports High Performance Animation Gap Step + Delta Compression schemes ( up to 18x compression ratios)
 
 **Disadvantages**:
 - Has no bones, gameplay that requires bone interactions will need the original plugin
