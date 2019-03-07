@@ -112,15 +112,16 @@ namespace MeshBoneUtil
     }
   }
 
-	public class dualQuat {
+	public struct dualQuat {
 		public XnaGeometry.Quaternion real, imaginary;
 
-		public dualQuat()
+        public dualQuat(double x, double y, double z, double w)
 		{
+            // Params have no effect since C# Structs do not allow for parameterless constructors
 			real.W = 0;
 			real.X = 0;
 			real.Y = 0;
-			real.Z = 0;
+            real.Z = 0;
 
 			imaginary = real;
 		}
@@ -794,7 +795,7 @@ namespace MeshBoneUtil
 			
 			// point posing
 			int cur_num_pts = getNumPts ();
-			dualQuat accum_dq = new dualQuat();
+            dualQuat accum_dq = new dualQuat(0, 0, 0, 0);
 
 			for(int i = 0; i < cur_num_pts; i++) {
 				XnaGeometry.Vector4 cur_rest_pt =

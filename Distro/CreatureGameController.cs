@@ -337,30 +337,39 @@ public class CreatureGameController : MonoBehaviour
         var parent_obj = creature_renderer.gameObject;
         Collider2D parent_collider = parent_obj.GetComponent<Collider2D>();
 
-        if (noCollisions) {
-            parent_collider.enabled = false;
-        }
-
-        foreach (Transform child in transform) {
-            var cur_body = child.GetComponent<Rigidbody2D>();
-            child_bodies.Add(cur_body);
-
-            var cur_collider = child.GetComponent<Collider2D>();
-            bone_colliders.Add(cur_collider);
-
-            // Turn off collision between bone collider and parent collider
-            Physics2D.IgnoreCollision(cur_collider, parent_collider);
-
-            if (noCollisions) {
-                cur_collider.enabled = false;
+        if (parent_collider != null)
+        {
+            if (noCollisions)
+            {
+                parent_collider.enabled = false;
             }
-        }
 
-        // Turn off collisions between bone colliders
-        foreach (Collider2D cur_collider1 in bone_colliders) {
-            foreach (Collider2D cur_collider2 in bone_colliders) {
-                if (cur_collider1 != cur_collider2) {
-                    Physics2D.IgnoreCollision(cur_collider1, cur_collider2);
+            foreach (Transform child in transform)
+            {
+                var cur_body = child.GetComponent<Rigidbody2D>();
+                var cur_collider = child.GetComponent<Collider2D>();
+
+                if ((cur_body != null) && (cur_collider != null)) {
+                    child_bodies.Add(cur_body);
+                    bone_colliders.Add(cur_collider);
+                    // Turn off collision between bone collider and parent collider
+                    Physics2D.IgnoreCollision(cur_collider, parent_collider);
+                    if (noCollisions)
+                    {
+                        cur_collider.enabled = false;
+                    }
+                }
+            }
+
+            // Turn off collisions between bone colliders
+            foreach (Collider2D cur_collider1 in bone_colliders)
+            {
+                foreach (Collider2D cur_collider2 in bone_colliders)
+                {
+                    if (cur_collider1 != cur_collider2)
+                    {
+                        Physics2D.IgnoreCollision(cur_collider1, cur_collider2);
+                    }
                 }
             }
         }

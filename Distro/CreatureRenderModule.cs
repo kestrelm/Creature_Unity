@@ -7,6 +7,45 @@ using UnityEngine;
 
 namespace CreatureModule
 {
+    public class CreatureMeshModifier
+    {
+        public int num_indices = 0;
+        public int num_pts = 0;
+        public int m_numIndices = 0;
+        public int m_maxIndice = -1;
+        public bool m_isValid = false;
+
+        public CreatureMeshModifier(int num_indices_in, int num_pts_in)
+        {
+            num_indices = num_indices_in;
+            num_pts = num_pts_in;
+        }
+
+        public virtual void initData(CreatureManager creature_manager, CreatureAsset creature_asset)
+        {
+        }
+
+        public virtual void update(
+            CreatureManager creature_manager,
+            bool counter_clockwise,
+            ref Vector3[] vertices,
+            ref Vector3[] normals,
+            ref Vector4[] tangents,
+            ref Color32[] colors,
+            ref Vector2[] uvs,
+            CreatureAsset creature_asset,
+            float region_overlap_z_delta,
+            bool skin_swap_active,
+            string skin_swap_name,
+            string active_animation_name,
+            ref List<int> final_indices,
+            ref List<int> final_skin_swap_indices,
+            ref int[] triangles,
+            ref int[] skin_swap_triangles)
+        {
+        }
+    }
+
     public class CreatureRenderModule
     {
         public static Mesh createMesh()
@@ -30,6 +69,27 @@ namespace CreatureModule
             else
             {
                 for (int i = 0; i < input_list.Count; i += 3)
+                {
+                    output_array[i] = input_list[i];
+                    output_array[i + 1] = input_list[i + 2];
+                    output_array[i + 2] = input_list[i + 1];
+                }
+            }
+        }
+
+        public static void SetIndexBufferWithResizing(List<int> input_list, ref int[] output_array, int num_elems, bool do_counterclockwise)
+        {
+            output_array = new int[num_elems];
+            if (!do_counterclockwise)
+            {
+                for (int i = 0; i < num_elems; i++)
+                {
+                    output_array[i] = input_list[i];
+                }
+            }
+            else
+            {
+                for (int i = 0; i < num_elems; i += 3)
                 {
                     output_array[i] = input_list[i];
                     output_array[i + 1] = input_list[i + 2];
@@ -102,19 +162,33 @@ namespace CreatureModule
             ref Color32[] colors,
             ref Vector2[] uvs,
             ref int[] triangles,
-            ref List<int> final_indices)
+            ref List<int> final_indices,
+            CreatureMeshModifier mesh_modifier = null)
         {
-            vertices = new Vector3[creature_manager.target_creature.total_num_pts];
-            normals = new Vector3[creature_manager.target_creature.total_num_pts];
-            tangents = new Vector4[creature_manager.target_creature.total_num_pts];
-            colors = new Color32[creature_manager.target_creature.total_num_pts];
-            uvs = new Vector2[creature_manager.target_creature.total_num_pts];
-            triangles = new int[creature_manager.target_creature.total_num_indices];
-            final_indices = new List<int>(new int[creature_manager.target_creature.total_num_indices]);
+            if (mesh_modifier != null)
+            {
+                vertices = new Vector3[mesh_modifier.num_pts];
+                normals = new Vector3[mesh_modifier.num_pts];
+                tangents = new Vector4[mesh_modifier.num_pts];
+                colors = new Color32[mesh_modifier.num_pts];
+                uvs = new Vector2[mesh_modifier.num_pts];
+                triangles = new int[mesh_modifier.m_maxIndice];
+                final_indices = new List<int>(new int[mesh_modifier.m_maxIndice]);
+            }
+            else
+            {
+                vertices = new Vector3[creature_manager.target_creature.total_num_pts];
+                normals = new Vector3[creature_manager.target_creature.total_num_pts];
+                tangents = new Vector4[creature_manager.target_creature.total_num_pts];
+                colors = new Color32[creature_manager.target_creature.total_num_pts];
+                uvs = new Vector2[creature_manager.target_creature.total_num_pts];
+                triangles = new int[creature_manager.target_creature.total_num_indices];
+                final_indices = new List<int>(new int[creature_manager.target_creature.total_num_indices]);
+            }
         }
 
         public static void UpdateRenderingData(
-            CreatureManager creature_manager, 
+            CreatureManager creature_manager,
             bool counter_clockwise,
             ref Vector3[] vertices,
             ref Vector3[] normals,
@@ -178,7 +252,7 @@ namespace CreatureModule
             }
 
             bool is_animate_order = false;
-            if(creature_asset.creature_meta_data != null)
+            if (creature_asset.creature_meta_data != null)
             {
                 is_animate_order = creature_asset.creature_meta_data.hasAnimatedOrder(active_animation_name, (int)real_run_time);
             }
@@ -200,9 +274,9 @@ namespace CreatureModule
                         skin_swap_active,
                         (int)real_run_time);
 
-                    if(skin_swap_active)
+                    if (skin_swap_active)
                     {
-                        for(int i = 0; i < final_skin_swap_indices.Count; i++)
+                        for (int i = 0; i < final_skin_swap_indices.Count; i++)
                         {
                             final_skin_swap_indices[i] = final_indices[i];
                         }
@@ -220,7 +294,7 @@ namespace CreatureModule
                 // Skin Swap with no Animated Ordering
                 SetIndexBuffer(final_skin_swap_indices, skin_swap_triangles, counter_clockwise);
             }
-            else if(is_animate_order == false)
+            else if (is_animate_order == false)
             {
                 // plain copy
                 for (int i = 0; i < render_indices.Count; i++)
@@ -231,8 +305,53 @@ namespace CreatureModule
             }
         }
 
+        public static void UpdateWithParticlesForRenderingData(
+            CreatureParticlesAsset particles_asset,
+            CreatureManager creature_manager,
+            bool counter_clockwise,
+            ref Vector3[] vertices,
+            ref Vector3[] normals,
+            ref Vector4[] tangents,
+            ref Color32[] colors,
+            ref Vector2[] uvs,
+            CreatureAsset creature_asset,
+            float region_overlap_z_delta,
+            bool skin_swap_active,
+            string skin_swap_name,
+            string active_animation_name,
+            ref List<int> final_indices,
+            ref List<int> final_skin_swap_indices,
+            ref int[] triangles,
+            ref int[] skin_swap_triangles)
+        {
+            particles_asset.mesh_modifier.update(
+                creature_manager,
+                counter_clockwise,
+                ref vertices,
+                ref normals,
+                ref tangents,
+                ref colors,
+                ref uvs,
+                creature_asset,
+                region_overlap_z_delta,
+                skin_swap_active,
+                skin_swap_name,
+                active_animation_name,
+                ref final_indices,
+                ref final_skin_swap_indices,
+                ref triangles,
+                ref skin_swap_triangles);
+
+            for(int i =0; i < triangles.Length; i++)
+            {
+                triangles[i] = 0;
+            }
+
+            SetIndexBuffer(final_indices, triangles, counter_clockwise);
+        }
+
         public static void UpdateTime(
-            CreatureManager creature_manager, 
+            CreatureManager creature_manager,
             CreatureGameController game_controller,
             CreatureMetaData meta_data,
             string active_animation_name,
@@ -247,7 +366,8 @@ namespace CreatureModule
             }
 
             bool morph_targets_valid = false;
-            if (game_controller != null) {
+            if (game_controller != null)
+            {
                 if ((meta_data != null) && game_controller.morph_targets_active)
                 {
                     morph_targets_valid = meta_data.morph_data.isValid();
@@ -260,7 +380,7 @@ namespace CreatureModule
             creature_manager.region_offsets_z = region_offsets_z;
             creature_manager.should_loop = should_loop;
 
-            if(morph_targets_valid)
+            if (morph_targets_valid)
             {
                 game_controller.computeMorphTargetsPt();
                 meta_data.updateMorphStep(creature_manager, time_delta);

@@ -64,6 +64,7 @@ public class CreatureRenderer : MonoBehaviour
 	private float custom_start_time, custom_end_time;
 	public float local_time_scale;
 	public CreatureAsset creature_asset;
+    public CreatureParticlesAsset creature_particles;
 	public CreatureManager creature_manager;
 	private CreatureGameController game_controller = null;
     public int animation_choice_index;
@@ -117,9 +118,9 @@ public class CreatureRenderer : MonoBehaviour
 
 	public void InitData()
 	{
-		if (creature_asset) {
-			CreatureManager ref_manager = creature_asset.GetCreatureManager();
-			creature_manager = new CreatureManager(ref_manager.target_creature);
+        if (creature_asset) {
+            CreatureManager ref_manager = creature_asset.GetCreatureManager();
+            creature_manager = new CreatureManager(ref_manager.target_creature);
 			creature_manager.animations = ref_manager.animations;
 			creature_manager.active_blend_run_times = new Dictionary<string, float>(ref_manager.active_blend_run_times);
 			creature_manager.active_blend_animation_names = new List<string>(ref_manager.active_blend_animation_names);
@@ -129,6 +130,11 @@ public class CreatureRenderer : MonoBehaviour
             SetActiveAnimation(active_animation_name);
 			creature_manager.SetIsPlaying(true);
 		}
+
+        if(creature_particles)
+        {
+            creature_particles.setupMeshModifier(creature_asset.GetCreatureManager());
+        }
 	}
 	
 	void Start () {
@@ -255,6 +261,12 @@ public class CreatureRenderer : MonoBehaviour
 
 	public void CreateRenderingData()
 	{
+        CreatureModule.CreatureMeshModifier mesh_modifier = null;
+        if(creature_particles)
+        {
+            mesh_modifier = creature_particles.mesh_modifier;
+        }
+
         CreatureRenderModule.CreateRenderingData(
             creature_manager,
             ref vertices, 
@@ -263,33 +275,67 @@ public class CreatureRenderer : MonoBehaviour
             ref colors, 
             ref uvs, 
             ref triangles,
-            ref final_indices);
+            ref final_indices,
+            mesh_modifier);
 	}
 
 	public void UpdateRenderingData()
 	{
-        CreatureRenderModule.UpdateRenderingData(
-            creature_manager,
-            counter_clockwise,
-            ref vertices,
-            ref normals,
-            ref tangents,
-            ref colors,
-            ref uvs,
-            creature_asset,
-            skin_swap_active,
-            active_animation_name,
-            ref final_indices,
-            ref final_skin_swap_indices,
-            ref triangles,
-            ref skin_swap_triangles);
+        if (creature_particles == null)
+        {
+            CreatureRenderModule.UpdateRenderingData(
+                creature_manager,
+                counter_clockwise,
+                ref vertices,
+                ref normals,
+                ref tangents,
+                ref colors,
+                ref uvs,
+                creature_asset,
+                skin_swap_active,
+                active_animation_name,
+                ref final_indices,
+                ref final_skin_swap_indices,
+                ref triangles,
+                ref skin_swap_triangles);
+        }
+        else
+        {
+            CreatureRenderModule.UpdateWithParticlesForRenderingData(
+                creature_particles,
+                creature_manager,
+                counter_clockwise,
+                ref vertices,
+                ref normals,
+                ref tangents,
+                ref colors,
+                ref uvs,
+                creature_asset,
+                region_offsets_z,
+                skin_swap_active,
+                skin_swap_name,
+                active_animation_name,
+                ref final_indices,
+                ref final_skin_swap_indices,
+                ref triangles,
+                ref skin_swap_triangles);
+        }
 
-        bool should_skin_swap = CreatureRenderModule.shouldSkinSwap(creature_asset, skin_swap_active, ref skin_swap_triangles);
 
         active_mesh.vertices = vertices;
 		active_mesh.colors32 = colors;
-		active_mesh.triangles = should_skin_swap ? skin_swap_triangles: triangles;
-		active_mesh.normals = normals;
+
+        if (creature_particles == null)
+        {
+            bool should_skin_swap = CreatureRenderModule.shouldSkinSwap(creature_asset, skin_swap_active, ref skin_swap_triangles);
+            active_mesh.triangles = should_skin_swap ? skin_swap_triangles : triangles;
+        }
+        else
+        {
+            active_mesh.triangles = triangles;
+        }
+
+        active_mesh.normals = normals;
 		active_mesh.tangents = tangents;
 		active_mesh.uv = uvs;
 

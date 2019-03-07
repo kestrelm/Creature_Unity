@@ -13,6 +13,7 @@ using System.Collections.Generic;
 public class CreatureRendererInspector : Editor
 {
 	private SerializedProperty creature_asset;
+    private SerializedProperty creature_particles;
 	private SerializedProperty animation_choice_index;
 	private SerializedProperty active_animation_name;
 	private SerializedProperty should_loop;
@@ -23,7 +24,8 @@ public class CreatureRendererInspector : Editor
 	void OnEnable () 
 	{
 		creature_asset = serializedObject.FindProperty("creature_asset");
-		animation_choice_index = serializedObject.FindProperty("animation_choice_index");
+        creature_particles = serializedObject.FindProperty("creature_particles");
+        animation_choice_index = serializedObject.FindProperty("animation_choice_index");
 		active_animation_name = serializedObject.FindProperty("active_animation_name");
 		should_loop = serializedObject.FindProperty("should_loop");
 		local_time_scale = serializedObject.FindProperty("local_time_scale");
@@ -35,6 +37,7 @@ public class CreatureRendererInspector : Editor
 	{
 		CreatureRenderer creature_renderer = (CreatureRenderer)target;
 		creature_renderer.creature_asset = (CreatureAsset)creature_asset.objectReferenceValue;
+        creature_renderer.creature_particles = (CreatureParticlesAsset)creature_particles.objectReferenceValue;
 		creature_renderer.animation_choice_index = animation_choice_index.intValue;
 		creature_renderer.should_loop = should_loop.boolValue;
 		creature_renderer.local_time_scale = local_time_scale.floatValue;
@@ -73,10 +76,11 @@ public class CreatureRendererInspector : Editor
 		
 		EditorGUI.BeginChangeCheck();
 		
-		EditorGUILayout.PropertyField (creature_asset);
-		EditorGUILayout.PropertyField (local_time_scale);
-		EditorGUILayout.PropertyField (region_offsets_z);
-		EditorGUILayout.PropertyField (counter_clockwise);
+		EditorGUILayout.PropertyField(creature_asset);
+        EditorGUILayout.PropertyField(creature_particles);
+		EditorGUILayout.PropertyField(local_time_scale);
+		EditorGUILayout.PropertyField(region_offsets_z);
+		EditorGUILayout.PropertyField(counter_clockwise);
 
 		bool did_change = EditorGUI.EndChangeCheck();
 

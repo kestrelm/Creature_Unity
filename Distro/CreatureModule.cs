@@ -75,14 +75,25 @@ namespace CreatureModule
         public MorphData morph_data = new MorphData();
 
         // Anim Color Data
-        public class AnimColorData
+        public struct AnimColorData
         {
             public int frame;
             public byte r, g, b;
         }
 
+        // UVS Data
+        public struct UVData
+        {
+            public int tag_id;
+            public UnityEngine.Vector2 uv0;
+            public UnityEngine.Vector2 uv1;
+        }
+
         public Dictionary<String, Dictionary<String, List<AnimColorData>>> anim_region_colors = 
             new Dictionary<string, Dictionary<string, List<AnimColorData>>>();
+
+        public Dictionary<int, UVData> uvs_data = new Dictionary<int, UVData>();
+
         public CreatureMetaData()
         {
             mesh_map = new Dictionary<int, MeshBoneUtil.CTuple<int, int>>();
@@ -1149,6 +1160,29 @@ namespace CreatureModule
                     meta_data.vertex_attachments[cur_name] = cur_idx;
                     vertex_attachments.Add(cur_name);
                 }
+            }
+
+            // Fill UVs
+            meta_data.uvs_data.Clear();
+            if (json_dict.ContainsKey("UVsData"))
+            {
+                var uvs_node = (object[])json_dict["UVsData"];
+                foreach(var cur_data in uvs_node)
+		        {
+                    CreatureMetaData.UVData new_uvs;
+                    var c_obj = (Dictionary<string, object>)cur_data;
+                    int c_tag_id = (int)c_obj["tag_id"];
+                    new_uvs.tag_id = c_tag_id;
+
+                    var c_uv0 = (System.Double[])c_obj["uv0"];
+                    var c_uv1 = (System.Double[])c_obj["uv1"];
+
+                    new_uvs.uv0 = new UnityEngine.Vector2((float)c_uv0[0], (float)c_uv0[1]);
+                    new_uvs.uv1 = new UnityEngine.Vector2((float)c_uv1[0], (float)c_uv1[1]);
+
+                    meta_data.uvs_data.Add(c_tag_id, new_uvs);
+                }
+
             }
 
             // Animated Region Colors
