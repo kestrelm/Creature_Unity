@@ -342,7 +342,24 @@ namespace CreatureModule
                 ref triangles,
                 ref skin_swap_triangles);
 
-            for(int i =0; i < triangles.Length; i++)
+            float normal_z = 1.0f;
+            if (counter_clockwise)
+            {
+                normal_z = -1.0f;
+            }
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                normals[i].x = 0;
+                normals[i].y = 0;
+                normals[i].z = normal_z;
+
+                tangents[i].x = 1.0f;
+                tangents[i].y = 0;
+                tangents[i].z = 0;
+            }
+
+            for (int i =0; i < triangles.Length; i++)
             {
                 triangles[i] = 0;
             }
