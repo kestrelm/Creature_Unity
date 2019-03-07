@@ -16,6 +16,7 @@ For more information on how to use the runtimes, please head over to this [site]
 - Bend Physics support for dangling bone chains via Unity PhysX
 - Smooth Animation Blending/Transitions
 - Unity UI Canvas Renderer Support
+- Support for Creature Flow Particle FX for Flipbook Style Animations
 - Gap Step Animation Compression Support
 - High Performance CreaturePack variant for character crowds, background scenes, secondary characters
 - Builds on all platforms ( PC/Mac/Linux/Console/Mobile )
