@@ -196,7 +196,7 @@ public class CreaturePackRenderer : MonoBehaviour {
     }
 
     // Use this for initialization
-    void Start () {
+    protected virtual void Start () {
         Awake();
 	}
 
@@ -222,14 +222,17 @@ public class CreaturePackRenderer : MonoBehaviour {
         }
     }
 
-    public void Awake()
+    public virtual void Awake()
     {
         InitRenderer();
     }
 
-    public void OnEnable()
+    public virtual void OnEnable()
     {
-        InitRenderer();
+        if (!Application.isPlaying)
+        {
+            InitRenderer();
+        }
     }
 
     public void CreateRenderingData()
